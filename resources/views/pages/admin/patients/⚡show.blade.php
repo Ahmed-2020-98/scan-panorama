@@ -32,12 +32,12 @@ new class extends Component {
 
         \App\Services\RecordRecovery::delete(auth()->user(), $this->patient);
         Flux::toast(variant: 'success', text: 'تم حذف المريض.');
-        $this->redirectRoute('patients.index', navigate: true);
+        $this->redirectRoute('cases.index', navigate: true);
     }
 }; ?>
 
 <div class="mx-auto w-full max-w-6xl">
-    <x-page-header eyebrow="ملف المريض" :title="$patient->name" :back="route('patients.index')">
+    <x-page-header eyebrow="ملف المريض" :title="$patient->name" :back="route('cases.index')">
         <x-slot:meta>
             <div class="mt-2 flex flex-wrap items-center gap-3 text-sm text-zinc-500">
                 <span class="ltr-nums rounded-md bg-zinc-100 px-2 py-0.5 font-medium text-zinc-700">{{ $patient->file_number }}</span>

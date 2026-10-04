@@ -12,14 +12,20 @@ export default defineConfig({
             ],
             refresh: true,
             fonts: [
-                google('Readex Pro', {
-                    weights: [300, 400, 500, 600, 700],
+                google('Tajawal', {
+                    weights: [400, 500, 700, 800],
                     subsets: ['arabic', 'latin'],
                 }),
-                google('Alexandria', {
-                    weights: [500, 600, 700, 800],
-                    subsets: ['arabic', 'latin'],
+                google('Montserrat', {
+                    weights: [400, 500, 600, 700, 800],
+                    subsets: ['latin'],
                 }),
+                // Optional interface fonts (Settings > Appearance): not preloaded,
+                // so a browser only downloads the one its user picked.
+                google('Cairo', { weights: [400, 500, 600, 700, 800], subsets: ['arabic', 'latin'], preload: false }),
+                google('IBM Plex Sans Arabic', { weights: [400, 500, 600, 700], subsets: ['arabic', 'latin'], preload: false }),
+                google('Almarai', { weights: [400, 700, 800], subsets: ['arabic'], preload: false }),
+                google('Readex Pro', { weights: [400, 500, 600, 700], subsets: ['arabic', 'latin'], preload: false }),
                 google('DM Mono', {
                     weights: [400, 500],
                     subsets: ['latin'],

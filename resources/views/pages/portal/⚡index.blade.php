@@ -93,7 +93,7 @@ new #[Layout('layouts::portal'), Title('حالاتي')] class extends Component 
 <div class="space-y-6">
     @php($doctor = auth()->user()->doctor)
 
-    <section class="film overflow-hidden rounded-2xl px-6 py-8 shadow-[0_24px_60px_-36px_rgb(5_30_32/0.8)] sm:px-9">
+    <section class="film overflow-hidden rounded-2xl px-6 py-8 shadow-[0_24px_60px_-36px_rgb(4_11_25/0.8)] sm:px-9">
         <x-radiograph class="pointer-events-none absolute -bottom-12 -left-10 w-[48%] opacity-70 max-lg:hidden" label="PANORAMIC · 2D" :meta="$doctor?->code" />
 
         <div class="relative flex flex-wrap items-end justify-between gap-8">

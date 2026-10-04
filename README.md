@@ -1,10 +1,10 @@
-# Scan4Dent — إدارة مركز الأشعة
+# Scan Panorama — إدارة مركز الأشعة السنية والفكية
 
 MVP عربي RTL: المرضى والحالات والفروع، أربعة أدوار وصلاحيات فردية، أسعار الفحوصات والخصومات، حسابات يومية وشهرية، زيارات الأطباء، ملفات وفيديو على Google Drive، روابط مشاركة مرتبطة بالحالة، سجل حركات ومحذوفات قابلة للاسترجاع.
 
 ## التشغيل
 
-النسخة المحلية الحالية: **http://localhost:8011**. Laravel 13 / PHP 8.3+، Livewire 4، Flux، Tailwind 4، Readex Pro وAlexandria، SQLite محليًا.
+النسخة المحلية الحالية: **http://localhost:8011**. Laravel 13 / PHP 8.3+، Livewire 4، Flux، Tailwind 4، Tajawal وMontserrat (الهوية البصرية في `public/images/brand`)، SQLite محليًا.
 
 للمشروع الموجود دون إعادة زرع البيانات:
 

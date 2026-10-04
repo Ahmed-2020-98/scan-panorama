@@ -5,7 +5,7 @@
 @php($grouped = $case->files->groupBy(fn ($file) => $file->type->value))
 
 <div class="space-y-6">
-    <section class="film dark overflow-hidden rounded-2xl px-6 py-7 shadow-[0_24px_60px_-36px_rgb(5_30_32/0.8)] sm:px-8">
+    <section class="film dark overflow-hidden rounded-2xl px-6 py-7 shadow-[0_24px_60px_-36px_rgb(4_11_25/0.8)] sm:px-8">
         <x-radiograph class="pointer-events-none absolute top-1/2 -left-8 w-[42%] -translate-y-1/2 opacity-45 max-md:hidden" :scan="false" :label="strtoupper(($case->examType?->name ?? 'لم يحدد'))" :meta="$case->exam_date->format('d.m.Y')" />
 
         <div class="relative">
@@ -53,7 +53,7 @@
         <x-panel :title="$type->label()" :subtitle="$type->description()" :icon="$type->icon()">
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($grouped[$type->value] as $file)
-                    <div class="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition hover:border-brand-300 hover:shadow-[0_18px_40px_-26px_rgb(10_60_60/0.55)]">
+                    <div class="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition hover:border-brand-300 hover:shadow-[0_18px_40px_-26px_rgb(8_30_70/0.55)]">
                         @if ($file->isImage())
                             <a href="{{ $fileUrl($file, 'view') }}" target="_blank" class="film crop-marks relative block aspect-video overflow-hidden">
                                 <img src="{{ $fileUrl($file, 'view') }}" alt="{{ $file->original_name }}" loading="lazy" class="relative size-full object-contain p-3 transition duration-500 group-hover:scale-[1.03]">

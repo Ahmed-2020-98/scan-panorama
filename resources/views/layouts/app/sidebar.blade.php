@@ -6,8 +6,8 @@
     <body class="workspace min-h-screen text-zinc-800 antialiased">
         @php($user = auth()->user())
 
-        <flux:sidebar sticky collapsible="mobile" class="dark film border-e border-white/5">
-            <flux:sidebar.header>
+        <flux:sidebar sticky collapsible="mobile" class="dark nav-surface border-e border-white/10">
+            <flux:sidebar.header class="shrink-0 pt-1">
                 <x-app-logo :sidebar="true" href="{{ $user->homeUrl() }}" wire:navigate />
                 <flux:sidebar.collapse class="lg:hidden" />
             </flux:sidebar.header>
@@ -24,11 +24,8 @@
                         <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
                             لوحة التحكم
                         </flux:sidebar.item>
-                        <flux:sidebar.item icon="folder-open" :href="route('cases.index')" :current="request()->routeIs('cases.*')" wire:navigate>
-                            الحالات
-                        </flux:sidebar.item>
-                        <flux:sidebar.item icon="users" :href="route('patients.index')" :current="request()->routeIs('patients.*')" wire:navigate>
-                            المرضى
+                        <flux:sidebar.item icon="folder-open" :href="route('cases.index')" :current="request()->routeIs('cases.*', 'patients.*')" wire:navigate>
+                            المرضى والحالات
                         </flux:sidebar.item>
                     </flux:sidebar.group>
 
@@ -86,7 +83,7 @@
         </flux:sidebar>
 
         <!-- Mobile header -->
-        <flux:header class="dark film border-b border-white/5 lg:hidden">
+        <flux:header class="dark nav-surface border-b border-white/10 lg:hidden">
             <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
 
             <x-app-logo href="{{ $user->homeUrl() }}" class="ms-2" wire:navigate />

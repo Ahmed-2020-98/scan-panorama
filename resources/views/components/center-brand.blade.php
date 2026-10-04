@@ -4,32 +4,16 @@
     $centerName = \App\Models\Setting::get('center_name');
     $tagline = \App\Models\Setting::get('center_tagline');
     $logoUrl = \App\Models\Setting::logoUrl();
-    $box = $size === 'lg' ? 'size-14 rounded-2xl' : 'size-11 rounded-xl';
+    $height = $size === 'lg' ? 'h-20' : 'h-14';
 @endphp
 
-<div {{ $attributes->class('flex items-center gap-3') }}>
+<div {{ $attributes->class('flex flex-col items-start gap-2') }}>
     @if ($logoUrl)
-        <img src="{{ $logoUrl }}" alt="{{ $centerName }}" class="{{ $box }} bg-white object-contain p-1 ring-1 {{ $onFilm ? 'ring-white/10' : 'ring-zinc-200' }}">
+        <img src="{{ $logoUrl }}" alt="{{ $centerName }}" class="{{ $height }} w-auto max-w-60 object-contain {{ $onFilm ? 'rounded-lg bg-white p-1.5' : '' }}">
     @else
-        <span @class([
-            $box,
-            'relative flex shrink-0 items-center justify-center',
-            'bg-phosphor text-film-950 shadow-[0_0_24px_-4px_var(--color-phosphor)]' => $onFilm,
-            'bg-film-900 text-phosphor shadow-sm ring-1 ring-film-700' => ! $onFilm,
-        ])>
-            <x-app-logo-icon class="{{ $size === 'lg' ? 'size-8' : 'size-6' }} fill-current" />
-        </span>
+        <img src="{{ asset($onFilm ? 'images/brand/logo-dark.png' : 'images/brand/logo.png') }}" alt="{{ $centerName }}" class="{{ $height }} w-auto">
     @endif
-    <div class="min-w-0">
-        <div @class([
-            'font-display font-bold leading-tight tracking-tight',
-            'text-2xl' => $size === 'lg',
-            'text-lg' => $size !== 'lg',
-            'text-white' => $onFilm,
-            'text-zinc-900' => ! $onFilm,
-        ])>{{ $centerName }}</div>
-        @if ($tagline)
-            <div class="text-sm {{ $onFilm ? 'text-zinc-400' : 'text-zinc-500' }}">{{ $tagline }}</div>
-        @endif
-    </div>
+    @if ($tagline)
+        <div class="text-sm font-medium {{ $onFilm ? 'text-zinc-300' : 'text-zinc-600' }}">{{ $tagline }}</div>
+    @endif
 </div>

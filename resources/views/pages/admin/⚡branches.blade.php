@@ -36,7 +36,8 @@ new #[Title('الفروع')] class extends Component {
         $branch = Branch::findOrFail($id);
         $this->resetValidation();
         $this->editingId = $branch->id;
-        $this->fill($branch->only('name', 'address', 'phone', 'is_active'));
+        $this->name = $branch->name;
+        $this->is_active = (bool) $branch->is_active;
         $this->address = (string) $branch->address;
         $this->phone = (string) $branch->phone;
         Flux::modal('branch-form')->show();
@@ -50,6 +51,8 @@ new #[Title('الفروع')] class extends Component {
             'phone' => ['nullable', 'string', 'max:30'],
             'is_active' => ['boolean'],
         ]);
+        $validated['address'] = trim($validated['address'] ?? '') ?: null;
+        $validated['phone'] = trim($validated['phone'] ?? '') ?: null;
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($validated) {
             $branch = $this->editingId ? Branch::findOrFail($this->editingId) : new Branch;

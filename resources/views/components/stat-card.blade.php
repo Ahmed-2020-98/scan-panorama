@@ -14,8 +14,8 @@
 @endphp
 
 <{{ $tag }} @if ($href) href="{{ $href }}" wire:navigate @endif {{ $attributes->class([
-    'group relative block overflow-hidden rounded-xl border border-zinc-200/90 bg-white px-5 pt-4 pb-3.5 shadow-[0_1px_0_rgb(10_60_60/0.03),0_12px_32px_-24px_rgb(10_60_60/0.35)]',
-    'transition duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-[0_18px_40px_-24px_rgb(10_60_60/0.45)]' => $href,
+    'group relative block overflow-hidden rounded-xl border border-zinc-200/90 bg-white px-5 pt-4 pb-3.5 shadow-[0_1px_0_rgb(8_30_70/0.03),0_12px_32px_-24px_rgb(8_30_70/0.35)]',
+    'transition duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-[0_18px_40px_-24px_rgb(8_30_70/0.45)]' => $href,
 ]) }}>
     <span class="absolute inset-y-4 start-0 w-[3px] rounded-e-full {{ $palette['bar'] }}"></span>
 

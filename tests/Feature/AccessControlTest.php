@@ -31,7 +31,6 @@ class AccessControlTest extends TestCase
             route('cases.create'),
             route('cases.show', $case),
             route('cases.edit', $case),
-            route('patients.index'),
             route('patients.show', $case->patient),
             route('patients.edit', $case->patient),
         ];

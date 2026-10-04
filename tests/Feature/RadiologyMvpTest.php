@@ -59,6 +59,29 @@ class RadiologyMvpTest extends TestCase
         return CaseRegistration::save(auth()->user(), $extra + ['branch_id' => $this->branch->id, 'doctor_id' => null, 'technician_id' => null, 'exam_type_id' => null, 'exam_date' => today()->toDateString(), 'name' => '', 'phone' => '', 'gender' => '', 'birth_year' => null, 'notes_internal' => '', 'notes_for_doctor' => '']);
     }
 
+    public function test_unified_list_shows_patient_details_and_filters_by_patient(): void
+    {
+        $a = MedicalCase::factory()->create(['branch_id' => $this->branch->id]);
+        $a->patient->update(['phone' => '01099887766']);
+        $second = MedicalCase::factory()->create(['branch_id' => $this->branch->id, 'patient_id' => $a->patient_id]);
+        $other = MedicalCase::factory()->create(['branch_id' => $this->branch->id]);
+
+        $this->get(route('cases.index'))->assertOk()->assertSee('01099887766')->assertSee($a->patient->file_number)->assertSee('2 حالات');
+        $this->get(route('cases.index', ['q' => '01099887766']))->assertSee($a->case_code)->assertDontSee($other->case_code);
+        $this->get(route('cases.index', ['patient' => $a->patient_id]))->assertSee($second->case_code)->assertDontSee($other->case_code);
+    }
+
+    public function test_branches_and_exam_types_with_empty_optional_fields_can_be_edited(): void
+    {
+        $branch = Branch::factory()->create(['address' => null, 'phone' => null]);
+        Livewire::test('pages::admin.branches')->call('edit', $branch->id)->assertSet('address', '')
+            ->set('address', 'شارع 9')->call('save')->assertHasNoErrors();
+        $this->assertSame('شارع 9', $branch->fresh()->address);
+
+        $exam = ExamType::factory()->create(['description' => null]);
+        Livewire::test('pages::admin.exam-types')->call('edit', $exam->id)->assertSet('description', '')->assertSet('name', $exam->name);
+    }
+
     public function test_anonymous_drafts_are_distinct_and_all_pages_open(): void
     {
         $a = $this->draft();
@@ -67,9 +90,10 @@ class RadiologyMvpTest extends TestCase
         $this->assertTrue($a->patient->identity_incomplete);
         $this->assertNull($a->doctor_id);
         $this->assertNull($a->final_price_minor);
-        foreach (['dashboard', 'cases.index', 'patients.index', 'accounts.index', 'visits.index', 'users.index', 'drive.settings', 'recycle-bin', 'exam-types.index', 'branches.index'] as $route) {
+        foreach (['dashboard', 'cases.index', 'accounts.index', 'visits.index', 'users.index', 'drive.settings', 'recycle-bin', 'exam-types.index', 'branches.index'] as $route) {
             $this->get(route($route))->assertOk();
         }
+        $this->get(route('patients.index'))->assertRedirect('/cases');
         $this->get(route('cases.show', $a))->assertOk();
         $this->get(route('patients.show', $a->patient))->assertOk();
         $this->get($a->shareUrl())->assertOk();
@@ -310,6 +334,6 @@ class RadiologyMvpTest extends TestCase
         $reception = User::factory()->reception()->create(['branch_id' => $this->branch->id]);
         $this->actingAs($reception);
         $this->expectException(HttpException::class);
-        CasePricing::apply($reception,$case,100000,50000,'خصم غير مصرح');
+        CasePricing::apply($reception, $case, 100000, 50000, 'خصم غير مصرح');
     }
 }

@@ -36,8 +36,9 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property-read Doctor|null $doctor
  * @property int|null $branch_id
  * @property array<string, bool>|null $permission_overrides
+ * @property string|null $font
  */
-#[Fillable(['name', 'email', 'phone', 'role', 'is_active', 'password', 'branch_id', 'permission_overrides'])]
+#[Fillable(['name', 'email', 'phone', 'role', 'is_active', 'password', 'branch_id', 'permission_overrides', 'font'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -143,6 +144,16 @@ class User extends Authenticatable
     public function scopeStaff(Builder $query): void
     {
         $query->whereIn('role', array_map(fn (Role $role) => $role->value, Role::staff()));
+    }
+
+    /**
+     * The user's interface font key, falling back to the center default.
+     */
+    public function fontKey(): string
+    {
+        $fonts = (array) config('radiology.fonts');
+
+        return $this->font && isset($fonts[$this->font]) ? $this->font : (string) config('radiology.default_font');
     }
 
     /**

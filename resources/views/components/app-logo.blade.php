@@ -7,24 +7,11 @@
     $logoUrl = \App\Models\Setting::logoUrl();
 @endphp
 
-@if($sidebar)
-    <flux:sidebar.brand :name="$centerName" {{ $attributes->class('font-display') }}>
-        <x-slot name="logo" class="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg {{ $logoUrl ? 'bg-white' : 'bg-phosphor text-film-950 shadow-[0_0_18px_-4px_var(--color-phosphor)]' }}">
-            @if ($logoUrl)
-                <img src="{{ $logoUrl }}" alt="" class="size-8 object-contain">
-            @else
-                <x-app-logo-icon class="size-5 fill-current" />
-            @endif
-        </x-slot>
-    </flux:sidebar.brand>
-@else
-    <flux:brand :name="$centerName" {{ $attributes->class('font-display') }}>
-        <x-slot name="logo" class="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg {{ $logoUrl ? 'bg-white' : 'bg-phosphor text-film-950' }}">
-            @if ($logoUrl)
-                <img src="{{ $logoUrl }}" alt="" class="size-8 object-contain">
-            @else
-                <x-app-logo-icon class="size-5 fill-current" />
-            @endif
-        </x-slot>
-    </flux:brand>
-@endif
+{{-- Always rendered on the navy sidebar/header, so the built-in logo uses its dark-surface variant. --}}
+<a {{ $attributes->class(['flex shrink-0 items-center rounded-lg focus-visible:outline-phosphor', 'px-1 py-1' => $sidebar]) }}>
+    @if ($logoUrl)
+        <img src="{{ $logoUrl }}" alt="{{ $centerName }}" class="{{ $sidebar ? 'h-12' : 'h-9' }} w-auto max-w-44 rounded-md bg-white object-contain p-1">
+    @else
+        <img src="{{ asset('images/brand/logo-dark.png') }}" alt="{{ $centerName }}" class="{{ $sidebar ? 'h-20' : 'h-10' }} w-auto">
+    @endif
+</a>

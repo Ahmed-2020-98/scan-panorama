@@ -11,7 +11,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-new #[Title('الحالات')] class extends Component {
+new #[Title('المرضى والحالات')] class extends Component {
     use WithPagination;
     public function boot(): void { abort_unless(auth()->user()->hasPermission(\App\Enums\Permission::ViewCases),403); }
 
@@ -29,6 +29,8 @@ new #[Title('الحالات')] class extends Component {
 
     #[Url(except: '')] public string $workflow = '';
 
+    #[Url(except: '')] public string $patient = '';
+
     #[Url(except: '')]
     public string $status = '';
 
@@ -40,14 +42,14 @@ new #[Title('الحالات')] class extends Component {
 
     public function updating(string $property): void
     {
-        if (in_array($property, ['search', 'doctor', 'branch', 'exam', 'status', 'workflow', 'from', 'to'], true)) {
+        if (in_array($property, ['search', 'doctor', 'branch', 'exam', 'status', 'workflow', 'patient', 'from', 'to'], true)) {
             $this->resetPage();
         }
     }
 
     public function clearFilters(): void
     {
-        $this->reset('search', 'doctor', 'branch', 'exam', 'status', 'workflow', 'from', 'to');
+        $this->reset('search', 'doctor', 'branch', 'exam', 'status', 'workflow', 'patient', 'from', 'to');
         $this->resetPage();
     }
 
@@ -55,11 +57,12 @@ new #[Title('الحالات')] class extends Component {
     public function cases()
     {
         return MedicalCase::query()
-            ->with(['patient', 'doctor.user', 'branch', 'examType'])
+            ->with(['patient' => fn ($q) => $q->withCount('cases'), 'doctor.user', 'branch', 'examType'])
             ->withFileCounts()
             ->search($this->search)
             ->withStatus($this->status ?: null)
             ->when($this->workflow, fn($q) => $q->where('workflow_status',$this->workflow))
+            ->when($this->patient, fn ($q) => $q->where('patient_id', (int) $this->patient))
             ->when($this->doctor, fn ($q) => $q->where('doctor_id', $this->doctor))
             ->when($this->branch, fn ($q) => $q->where('branch_id', $this->branch))
             ->when($this->exam, fn ($q) => $q->where('exam_type_id', $this->exam))
@@ -78,12 +81,12 @@ new #[Title('الحالات')] class extends Component {
 
     public function hasFilters(): bool
     {
-        return collect([$this->search, $this->doctor, $this->branch, $this->exam, $this->status, $this->workflow, $this->from, $this->to])->filter()->isNotEmpty();
+        return collect([$this->search, $this->doctor, $this->branch, $this->exam, $this->status, $this->workflow, $this->patient, $this->from, $this->to])->filter()->isNotEmpty();
     }
 }; ?>
 
 <div class="mx-auto w-full max-w-7xl">
-    <x-page-header eyebrow="سجل الأشعة" title="الحالات" subtitle="كل حالات الأشعة مع ملفاتها وحالة مشاركتها">
+    <x-page-header eyebrow="سجل الأشعة" title="المرضى والحالات" subtitle="كل مريض وحالاته وملفاته وحالة مشاركتها في مكان واحد">
         <x-slot:actions>
             <flux:button variant="primary" icon="plus" :href="route('cases.create')" wire:navigate>حالة جديدة</flux:button>
         </x-slot:actions>
@@ -91,7 +94,7 @@ new #[Title('الحالات')] class extends Component {
 
     <x-panel :padded="false">
         <div class="grid gap-3 border-b border-zinc-100 p-4 sm:grid-cols-2 lg:grid-cols-4">
-            <flux:input wire:model.live.debounce.400ms="search" icon="magnifying-glass" placeholder="اسم المريض، الكود، أو الهاتف" class="sm:col-span-2" clearable />
+            <flux:input wire:model.live.debounce.400ms="search" icon="magnifying-glass" placeholder="اسم المريض، رقم الملف، كود الحالة، أو الهاتف" class="sm:col-span-2" clearable />
             <flux:select wire:model.live="doctor">
                 <flux:select.option value="">كل الأطباء</flux:select.option>
                 @foreach ($this->doctors as $doctorOption)
@@ -160,6 +163,14 @@ new #[Title('الحالات')] class extends Component {
                                 <flux:table.cell class="ltr-nums">{{ $case->exam_date->format('d/m/Y') }}</flux:table.cell>
                                 <flux:table.cell variant="strong">
                                     <a href="{{ route('cases.show', $case) }}" wire:navigate class="hover:text-brand-700">{{ $case->patient->name }}</a>
+                                    <div class="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs font-normal text-zinc-500">
+                                        <span class="ltr-nums">{{ $case->patient->file_number }}</span>
+                                        @if ($case->patient->phone)<span class="ltr-nums">{{ $case->patient->phone }}</span>@endif
+                                        @if ($case->patient->genderLabel() || $case->patient->age !== null)<span>{{ $case->patient->genderLabel() }}@if ($case->patient->age !== null) {{ $case->patient->age }} سنة @endif</span>@endif
+                                        @if ($case->patient->cases_count > 1)
+                                            <a href="{{ route('cases.index', ['patient' => $case->patient_id]) }}" wire:navigate class="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-700 hover:bg-zinc-200">{{ $case->patient->cases_count }} حالات</a>
+                                        @endif
+                                    </div>
                                 </flux:table.cell>
                                 <flux:table.cell dir="ltr" class="text-end">{{ ($case->examType?->name ?? 'لم يحدد') }}</flux:table.cell>
                                 <flux:table.cell>{{ ($case->doctor?->display_name ?? 'لم يحدد') }}</flux:table.cell>

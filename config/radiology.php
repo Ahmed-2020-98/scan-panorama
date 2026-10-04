@@ -47,9 +47,30 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Interface fonts
+    |--------------------------------------------------------------------------
+    |
+    | Fonts each user can pick under Settings > Appearance. The key is stored
+    | on the user; "stack" becomes the sans/display font stack. Every family
+    | here must also be registered in vite.config.js.
+    |
+    */
+
+    'default_font' => 'tajawal',
+
+    'fonts' => [
+        'tajawal' => ['label' => 'Tajawal', 'note' => 'خط الهوية البصرية', 'stack' => "'Montserrat', 'Tajawal'"],
+        'cairo' => ['label' => 'Cairo', 'note' => 'عريض وواضح', 'stack' => "'Cairo', 'Tajawal'"],
+        'plex' => ['label' => 'IBM Plex Sans Arabic', 'note' => 'رسمي ومريح للقراءة الطويلة', 'stack' => "'IBM Plex Sans Arabic', 'Tajawal'"],
+        'almarai' => ['label' => 'Almarai', 'note' => 'بسيط ومستدير', 'stack' => "'Almarai', 'Tajawal'"],
+        'readex' => ['label' => 'Readex Pro', 'note' => 'حديث ومتباعد الحروف', 'stack' => "'Readex Pro', 'Tajawal'"],
+    ],
+
     'defaults' => [
-        'center_name' => 'Scan4Dent',
-        'center_tagline' => 'مركز أشعة الأسنان والوجه والفكين',
+        'center_name' => 'Scan Panorama',
+        'center_tagline' => 'مركز الأشعة السنية والفكية',
         'contact_phone' => '01000000000',
         'support_whatsapp' => '01000000000',
         'tutorial_url' => '',

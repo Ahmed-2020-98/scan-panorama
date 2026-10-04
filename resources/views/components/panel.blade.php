@@ -1,6 +1,6 @@
 @props(['title' => null, 'subtitle' => null, 'icon' => null, 'padded' => true])
 
-<section {{ $attributes->class('overflow-hidden rounded-xl border border-zinc-200/90 bg-white shadow-[0_1px_0_rgb(10_60_60/0.03),0_12px_32px_-24px_rgb(10_60_60/0.35)]') }}>
+<section {{ $attributes->class('overflow-hidden rounded-xl border border-zinc-200/90 bg-white shadow-[0_1px_0_rgb(8_30_70/0.03),0_12px_32px_-24px_rgb(8_30_70/0.35)]') }}>
     @if ($title || isset($actions))
         <header class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-5 py-3.5">
             <div class="flex min-w-0 items-center gap-3">

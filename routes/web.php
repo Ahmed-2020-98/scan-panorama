@@ -18,7 +18,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['role:manager,reception', 'permission:view_cases'])->group(function () {
         Route::livewire('dashboard', 'pages::admin.dashboard')->name('dashboard');
 
-        Route::livewire('patients', 'pages::admin.patients.index')->name('patients.index');
+        Route::redirect('patients', '/cases')->name('patients.index');
         Route::redirect('patients/create', '/cases/create')->name('patients.create');
         Route::livewire('patients/{patient}', 'pages::admin.patients.show')->name('patients.show');
         Route::livewire('patients/{patient}/edit', 'pages::admin.patients.form')->name('patients.edit');

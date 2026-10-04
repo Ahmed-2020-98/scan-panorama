@@ -113,7 +113,7 @@ new class extends Component {
         $status = $case->status;
     @endphp
 
-    <section class="film dark mb-6 overflow-hidden rounded-2xl px-6 pt-5 pb-7 shadow-[0_24px_60px_-36px_rgb(5_30_32/0.8)] sm:px-8">
+    <section class="film dark mb-6 overflow-hidden rounded-2xl px-6 pt-5 pb-7 shadow-[0_24px_60px_-36px_rgb(4_11_25/0.8)] sm:px-8">
         <x-radiograph class="pointer-events-none absolute top-1/2 -left-6 w-[40%] -translate-y-1/2 opacity-40 max-lg:hidden" :scan="false" :label="strtoupper(($case->examType?->name ?? 'لم يحدد'))" :meta="$case->case_code" />
 
         <div class="relative">

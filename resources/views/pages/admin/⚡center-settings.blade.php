@@ -156,7 +156,7 @@ new #[Title('إعدادات المركز')] class extends Component {
                     @elseif ($logoUrl)
                         <img src="{{ $logoUrl }}" class="size-full object-contain p-1" alt="">
                     @else
-                        <x-app-logo-icon class="size-9 fill-brand-600" />
+                        <img src="{{ asset('images/brand/logo.png') }}" class="size-full object-contain p-1" alt="">
                     @endif
                 </div>
                 <div class="space-y-2">

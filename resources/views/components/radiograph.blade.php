@@ -67,22 +67,22 @@
     <svg viewBox="0 0 600 260" class="block h-auto w-full" style="direction: ltr">
         <defs>
             <radialGradient id="{{ $uid }}-glow" cx="50%" cy="54%" r="55%">
-                <stop offset="0" style="stop-color: var(--color-phosphor)" stop-opacity="0.16" />
-                <stop offset="1" style="stop-color: var(--color-phosphor)" stop-opacity="0" />
+                <stop offset="0" style="stop-color: var(--color-xray)" stop-opacity="0.18" />
+                <stop offset="1" style="stop-color: var(--color-xray)" stop-opacity="0" />
             </radialGradient>
             <linearGradient id="{{ $uid }}-enamel" x1="0" y1="1" x2="0" y2="0">
-                <stop offset="0" stop-color="#f4fffd" stop-opacity="0.95" />
-                <stop offset="0.3" stop-color="#d9f5f1" stop-opacity="0.72" />
-                <stop offset="1" stop-color="#a9dcd6" stop-opacity="0.18" />
+                <stop offset="0" stop-color="#f5f9ff" stop-opacity="0.95" />
+                <stop offset="0.3" stop-color="#d9e7fb" stop-opacity="0.72" />
+                <stop offset="1" stop-color="#a9c5ec" stop-opacity="0.18" />
             </linearGradient>
         </defs>
 
         <ellipse cx="300" cy="140" rx="300" ry="130" fill="url(#{{ $uid }}-glow)" />
 
         {{-- Anatomy: sinuses, palate, mandible and rami --}}
-        <g fill="none" stroke="#dff7f3" stroke-linecap="round">
-            <ellipse cx="178" cy="52" rx="72" ry="25" fill="#dff7f3" fill-opacity="0.035" stroke-opacity="0.09" />
-            <ellipse cx="422" cy="52" rx="72" ry="25" fill="#dff7f3" fill-opacity="0.035" stroke-opacity="0.09" />
+        <g fill="none" stroke="#dfeafb" stroke-linecap="round">
+            <ellipse cx="178" cy="52" rx="72" ry="25" fill="#dfeafb" fill-opacity="0.035" stroke-opacity="0.09" />
+            <ellipse cx="422" cy="52" rx="72" ry="25" fill="#dfeafb" fill-opacity="0.035" stroke-opacity="0.09" />
             <path d="M 262,20 C 280,44 320,44 338,20" stroke-opacity="0.1" />
             <path d="M 86,78 C 200,58 400,58 514,78" stroke-opacity="0.12" />
             <path d="M 34,86 C 40,214 168,244 300,244 C 432,244 560,214 566,86" stroke-opacity="0.16" stroke-width="1.4" />
@@ -95,15 +95,15 @@
             @foreach ($teeth as $tooth)
                 <g transform="translate({{ $tooth['x'] }} {{ $tooth['y'] }}) rotate({{ $tooth['angle'] }}){{ $tooth['flip'] ? ' scale(1 -1)' : '' }}">
                     <g class="tooth" style="--i: {{ $tooth['order'] }}">
-                        <path d="{{ $tooth['shape'] }}" fill="url(#{{ $uid }}-enamel)" stroke="#e9fffb" stroke-opacity="0.35" stroke-width="0.6" />
-                        <path d="{{ $tooth['pulp'] }}" fill="#081619" fill-opacity="0.5" />
+                        <path d="{{ $tooth['shape'] }}" fill="url(#{{ $uid }}-enamel)" stroke="#eaf3ff" stroke-opacity="0.35" stroke-width="0.6" />
+                        <path d="{{ $tooth['pulp'] }}" fill="#08172e" fill-opacity="0.5" />
                     </g>
                 </g>
             @endforeach
         </g>
 
         {{-- DICOM-style overlays --}}
-        <g class="overlay-text" font-family="DM Mono, ui-monospace, monospace" fill="#bfeee7" fill-opacity="0.7" font-size="9">
+        <g class="overlay-text" font-family="DM Mono, ui-monospace, monospace" fill="#bfd5f5" fill-opacity="0.7" font-size="9">
             <rect x="14" y="12" width="22" height="24" rx="3" fill="none" style="stroke: var(--color-marker)" stroke-width="1.2" />
             <text x="25" y="29.5" text-anchor="middle" font-size="15" font-weight="500" style="fill: var(--color-marker)" fill-opacity="1">R</text>
 
@@ -112,7 +112,7 @@
                 <text x="586" y="35" text-anchor="end" fill-opacity="0.45">{{ $meta }}</text>
             @endif
 
-            <g stroke="#bfeee7" stroke-opacity="0.55">
+            <g stroke="#bfd5f5" stroke-opacity="0.55">
                 <line x1="16" y1="248" x2="116" y2="248" />
                 @for ($tick = 0; $tick <= 10; $tick++)
                     <line x1="{{ 16 + $tick * 10 }}" y1="248" x2="{{ 16 + $tick * 10 }}" y2="{{ $tick % 5 === 0 ? 240 : 244 }}" />
