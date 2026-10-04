@@ -1,0 +1,374 @@
+@import 'tailwindcss';
+@import '../../vendor/livewire/flux/dist/flux.css';
+
+@source '../views';
+@source '../js';
+@source '../../app';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
+@source '../../vendor/livewire/flux/stubs/**/*.blade.php';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+|--------------------------------------------------------------------------
+| "Lightbox" design system
+|--------------------------------------------------------------------------
+| The interface is a radiology reading room: dark film surfaces lit by
+| phosphor cyan, amber lateral markers, and a cool paper workspace ruled
+| with hairlines. Codes, dates and numbers read like DICOM overlays.
+*/
+
+@theme {
+    --font-sans: 'Readex Pro', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Alexandria', 'Readex Pro', ui-sans-serif, sans-serif;
+    --font-mono: 'DM Mono', 'Readex Pro', ui-monospace, monospace;
+
+    /* Cool, slightly teal-tinted neutrals */
+    --color-zinc-50: #f5f8f8;
+    --color-zinc-100: #edf2f2;
+    --color-zinc-200: #dde5e6;
+    --color-zinc-300: #c6d1d3;
+    --color-zinc-400: #93a3a6;
+    --color-zinc-500: #647579;
+    --color-zinc-600: #48585c;
+    --color-zinc-700: #34413f;
+    --color-zinc-800: #1f2a2c;
+    --color-zinc-900: #121a1c;
+    --color-zinc-950: #0a1012;
+
+    /* Paper workspace */
+    --color-paper: #f2f5f4;
+    --color-paper-deep: #e8eeed;
+
+    /* Film surfaces */
+    --color-film-950: #050e10;
+    --color-film-900: #081619;
+    --color-film-800: #0d2226;
+    --color-film-700: #143238;
+    --color-film-600: #1d444b;
+
+    /* Phosphor: light on film */
+    --color-phosphor: #62f0df;
+    --color-phosphor-soft: #a8f7ee;
+
+    /* Brand teal on paper */
+    --color-brand-50: #e9f7f6;
+    --color-brand-100: #cdeeeb;
+    --color-brand-200: #9fdcd7;
+    --color-brand-300: #62c4bd;
+    --color-brand-400: #2aa9a2;
+    --color-brand-500: #12908a;
+    --color-brand-600: #0b7671;
+    --color-brand-700: #0a5f5c;
+    --color-brand-800: #0c4b49;
+    --color-brand-900: #0d3c3b;
+
+    /* Lateral marker amber (the "R" on a radiograph) */
+    --color-marker: #f2a53a;
+
+    --color-accent: var(--color-brand-700);
+    --color-accent-content: var(--color-brand-700);
+    --color-accent-foreground: var(--color-white);
+
+    --animate-reveal: reveal 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@layer theme {
+    .dark {
+        --color-accent: var(--color-phosphor);
+        --color-accent-content: var(--color-phosphor);
+        --color-accent-foreground: var(--color-film-950);
+    }
+}
+
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-zinc-200, currentColor);
+    }
+
+    body {
+        font-feature-settings: 'kern';
+        text-rendering: optimizeLegibility;
+    }
+
+    h1,
+    h2,
+    h3,
+    [data-flux-heading] {
+        font-family: var(--font-display);
+        letter-spacing: -0.01em;
+    }
+
+    ::selection {
+        background: color-mix(in oklab, var(--color-brand-300) 45%, transparent);
+    }
+
+    /* Codes, dates and numbers: left-to-right, monospaced, like DICOM overlays */
+    .ltr-nums {
+        direction: ltr;
+        unicode-bidi: isolate;
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.01em;
+    }
+}
+
+@layer components {
+    /* Paper workspace with a faint calibration grid that fades downward */
+    .workspace {
+        background-color: var(--color-paper);
+        background-image:
+            linear-gradient(to bottom, transparent, var(--color-paper) 420px),
+            linear-gradient(to right, color-mix(in oklab, var(--color-brand-700) 7%, transparent) 1px, transparent 1px),
+            linear-gradient(to bottom, color-mix(in oklab, var(--color-brand-700) 7%, transparent) 1px, transparent 1px);
+        background-size: 100% 100%, 32px 32px, 32px 32px;
+        background-attachment: local;
+    }
+
+    /* Radiograph film: deep teal-black, grain, grid and a soft light leak */
+    .film {
+        position: relative;
+        isolation: isolate;
+        color: var(--color-zinc-100);
+        background-color: var(--color-film-900);
+        background-image:
+            radial-gradient(120% 90% at 85% 0%, color-mix(in oklab, var(--color-phosphor) 14%, transparent), transparent 60%),
+            radial-gradient(80% 70% at 0% 100%, color-mix(in oklab, var(--color-brand-500) 18%, transparent), transparent 70%),
+            linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
+            linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+        background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px;
+    }
+
+    .film::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        opacity: 0.22;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* Measurement ruler: minor ticks every 6px, major every 60px */
+    .ruler {
+        height: 9px;
+        background-image:
+            linear-gradient(to right, var(--ruler-color, var(--color-zinc-300)) 1px, transparent 1px),
+            linear-gradient(to right, var(--ruler-color, var(--color-zinc-300)) 1px, transparent 1px),
+            linear-gradient(var(--ruler-color, var(--color-zinc-300)), var(--ruler-color, var(--color-zinc-300)));
+        background-size: 6px 4px, 60px 9px, 100% 1px;
+        background-repeat: repeat-x, repeat-x, no-repeat;
+        background-position: 0 0, 0 0, 0 0;
+    }
+
+    .film .ruler,
+    .ruler-light {
+        --ruler-color: rgb(255 255 255 / 0.22);
+    }
+
+    /* Small section label that sits above headings */
+    .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--color-brand-600);
+    }
+
+    .eyebrow::before {
+        content: '';
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 2px;
+        background: currentColor;
+        box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 18%, transparent);
+    }
+
+    .film .eyebrow {
+        color: var(--color-phosphor);
+    }
+
+    /* Crop marks in the corners of an image frame */
+    .crop-marks {
+        position: relative;
+    }
+
+    .crop-marks::before {
+        --mark: var(--crop-mark, var(--color-phosphor));
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        opacity: 0.8;
+        background:
+            linear-gradient(var(--mark), var(--mark)) top 8px left 8px / 12px 1px,
+            linear-gradient(var(--mark), var(--mark)) top 8px left 8px / 1px 12px,
+            linear-gradient(var(--mark), var(--mark)) top 8px right 8px / 12px 1px,
+            linear-gradient(var(--mark), var(--mark)) top 8px right 8px / 1px 12px,
+            linear-gradient(var(--mark), var(--mark)) bottom 8px left 8px / 12px 1px,
+            linear-gradient(var(--mark), var(--mark)) bottom 8px left 8px / 1px 12px,
+            linear-gradient(var(--mark), var(--mark)) bottom 8px right 8px / 12px 1px,
+            linear-gradient(var(--mark), var(--mark)) bottom 8px right 8px / 1px 12px;
+        background-repeat: no-repeat;
+    }
+
+    /* Scan line sweeping across a lightbox */
+    .scanline {
+        position: absolute;
+        inset-block: 0;
+        inset-inline-start: 0;
+        width: 22%;
+        pointer-events: none;
+        background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--color-phosphor) 22%, transparent) 70%, color-mix(in oklab, var(--color-phosphor) 55%, transparent) 99%, transparent);
+        mix-blend-mode: screen;
+        animation: scan 6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    }
+}
+
+/* Staggered entrance for each page's top-level blocks */
+.page-enter > * > :not(ui-modal, [wire\:ignore]) {
+    animation: var(--animate-reveal);
+}
+
+.page-enter > * > :nth-child(2) { animation-delay: 60ms; }
+.page-enter > * > :nth-child(3) { animation-delay: 120ms; }
+.page-enter > * > :nth-child(4) { animation-delay: 180ms; }
+.page-enter > * > :nth-child(5) { animation-delay: 240ms; }
+.page-enter > * > :nth-child(n + 6) { animation-delay: 300ms; }
+
+/* Radiograph illustration: teeth "develop" one by one */
+.radiograph .tooth {
+    animation: develop 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: calc(var(--i, 0) * 45ms + 250ms);
+    transform-box: fill-box;
+}
+
+.radiograph .overlay-text {
+    animation: reveal 0.9s ease both 1.2s;
+}
+
+@keyframes reveal {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+}
+
+@keyframes develop {
+    from {
+        opacity: 0;
+        filter: blur(4px);
+    }
+    60% {
+        opacity: 1;
+    }
+}
+
+@keyframes scan {
+    0% {
+        transform: translateX(-120%);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    70% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(560%);
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-enter > * > *,
+    .radiograph .tooth,
+    .radiograph .overlay-text,
+    .scanline {
+        animation: none !important;
+    }
+}
+
+/* Flux refinements */
+[data-flux-field]:not(ui-radio, ui-checkbox) {
+    @apply grid gap-2;
+}
+
+[data-flux-label] {
+    @apply !mb-0 !leading-tight;
+}
+
+input:focus[data-flux-control],
+textarea:focus[data-flux-control],
+select:focus[data-flux-control] {
+    @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
+}
+
+[data-flux-columns] th {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-zinc-500);
+    background: var(--color-zinc-50);
+    border-bottom-color: var(--color-zinc-200);
+}
+
+[data-flux-columns] th:first-child {
+    padding-inline-start: 0.75rem;
+}
+
+[data-flux-rows] [data-flux-row] td:first-child {
+    padding-inline-start: 0.75rem;
+}
+
+[data-flux-rows] [data-flux-row] {
+    transition: background-color 120ms ease;
+}
+
+[data-flux-rows] [data-flux-row]:hover {
+    background-color: color-mix(in oklab, var(--color-brand-50) 70%, transparent);
+}
+
+[data-flux-rows] [data-flux-row] td {
+    border-color: var(--color-zinc-100);
+}
+
+/* Active sidebar item gets a phosphor edge light */
+[data-flux-sidebar-item] {
+    position: relative;
+}
+
+[data-flux-sidebar-item][data-current]::before {
+    content: '';
+    position: absolute;
+    inset-block: 7px;
+    inset-inline-start: -0.5rem;
+    width: 3px;
+    border-radius: 3px;
+    background: var(--color-phosphor);
+    box-shadow: 0 0 12px var(--color-phosphor);
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+@layer base {
+    :focus-visible { outline: 2px solid var(--color-brand-600); outline-offset: 3px; }
+    summary { min-height: 44px; display: list-item; align-content: center; }
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+    }
+}
+
+[data-flux-sidebar-item] [data-content] { white-space: normal; overflow: visible; text-overflow: clip; }
+
+[data-flux-sidebar-item] { height: auto; min-height: 44px; padding-block: 6px; }
