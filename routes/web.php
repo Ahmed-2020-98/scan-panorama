@@ -12,6 +12,8 @@ Route::get('/', function () {
         : redirect()->route('login');
 })->name('home');
 
+Route::view('privacy', 'privacy')->name('privacy');
+
 Route::middleware('auth')->group(function () {
 
     // Center staff: admin + reception
