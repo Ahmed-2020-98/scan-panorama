@@ -15,6 +15,10 @@ new class extends Component {
     {
         $this->authorize('view',$case);
         $this->medicalCase = $case;
+        // Files still waiting for Drive (e.g. no cron on the host): move them once this page is served.
+        if ($case->files()->where('storage_status', 'pending')->exists()) {
+            \App\Support\QueueKick::drainAfterResponse();
+        }
     }
 
     public function boot(): void { if (isset($this->medicalCase)) { $this->authorize('view',$this->medicalCase); } }

@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Jobs\UploadCaseFileToDrive;
 use App\Models\MedicalCase;
 use App\Services\CaseClinicalUpdates;
+use App\Support\QueueKick;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
@@ -44,6 +45,7 @@ class CaseClinicalPanel extends Component
         abort_unless($file->staging_path && Storage::disk('local')->exists($file->staging_path), 422, 'انتهت صلاحية الملف المؤقت. أعد رفعه.');
         $file->update(['storage_status' => 'pending', 'storage_error' => null]);
         UploadCaseFileToDrive::dispatch($file->id);
+        QueueKick::drainAfterResponse();
     }
 
     public function render(): View

@@ -9,6 +9,7 @@ use App\Models\DriveConnection;
 use App\Models\MedicalCase;
 use App\Models\UploadSession;
 use App\Support\ActivityLogger;
+use App\Support\QueueKick;
 use App\Support\UploadLimits;
 use Illuminate\Http\File;
 use Illuminate\Http\JsonResponse;
@@ -106,10 +107,12 @@ class CaseUploadController extends Controller
             return response()->json(['done' => false, 'received' => $received]);
         }
 
-        return response()->json([
+        $response = response()->json([
             'done' => true,
             'file' => ['id' => $file->id, 'name' => $file->original_name, 'size' => $file->humanSize(), 'status' => $file->storage_status],
         ]);
+
+        return $file->storage_status === 'pending' ? QueueKick::afterResponse($response) : $response;
     }
 
     private function assemble(
