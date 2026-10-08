@@ -22,7 +22,7 @@ new #[Title('الفروع')] class extends Component {
     #[Computed]
     public function branches()
     {
-        return Branch::withCount(['cases' => fn ($q) => $q->withTrashed(), 'doctors'])->orderBy('name')->get();
+        return Branch::withCount(['cases' => fn ($q) => $q->withTrashed(), 'cases as live_cases_count', 'doctors', 'users'])->orderBy('name')->get();
     }
 
     public function create(): void
@@ -69,19 +69,17 @@ new #[Title('الفروع')] class extends Component {
 
     public function delete(int $id): void
     {
-        $branch = Branch::withCount(['cases' => fn ($q) => $q->withTrashed()])->findOrFail($id);
+        $branch = Branch::findOrFail($id);
 
-        if ($branch->cases_count > 0 || $branch->users()->exists() || \App\Models\DoctorVisit::withTrashed()->where('branch_id', $id)->exists()) {
-            Flux::toast(variant: 'danger', text: 'لا يمكن حذف فرع مرتبط بحالات، يمكنك تعطيله بدلًا من ذلك.');
+        if ($branch->users()->exists()) {
+            Flux::toast(variant: 'danger', text: 'انقل مستخدمي هذا الفرع إلى فرع آخر من «المستخدمون والصلاحيات» قبل حذفه.');
 
             return;
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($branch) {
-            \App\Support\ActivityLogger::log('branch.deleted', $branch, ['name'=>$branch->name]);
-            $branch->delete();
-        });
-        Flux::toast(variant: 'success', text: 'تم حذف الفرع.');
+        \App\Services\RecordRecovery::delete(auth()->user(), $branch);
+        unset($this->branches);
+        Flux::toast(variant: 'success', text: 'تم حذف الفرع وحالاته إلى «المحذوفات»، ويمكن استرجاعها من هناك.');
     }
 
     private function resetForm(): void
@@ -121,9 +119,8 @@ new #[Title('الفروع')] class extends Component {
                             <flux:table.cell><flux:badge size="sm" :color="$branch->is_active ? 'green' : 'zinc'">{{ $branch->is_active ? 'نشط' : 'متوقف' }}</flux:badge></flux:table.cell>
                             <flux:table.cell align="end">
                                 <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="edit({{ $branch->id }})">تعديل</flux:button>
-                                @if ($branch->cases_count === 0)
-                                    <flux:button size="sm" variant="ghost" icon="trash" class="text-red-600!" wire:click="delete({{ $branch->id }})" wire:confirm="حذف فرع {{ $branch->name }}؟" aria-label="حذف" />
-                                @endif
+                                <flux:button size="sm" variant="ghost" icon="trash" class="text-red-600!" wire:click="delete({{ $branch->id }})"
+                                    wire:confirm="{{ $branch->live_cases_count > 0 ? 'حذف فرع '.$branch->name.' و'.$branch->live_cases_count.' حالة بملفاتها؟ ستنتقل كلها إلى «المحذوفات» ويمكن استرجاعها. المدفوعات تبقى في الحسابات.' : 'حذف فرع '.$branch->name.'؟ يمكن استرجاعه من «المحذوفات».' }}">حذف</flux:button>
                             </flux:table.cell>
                         </flux:table.row>
                     @endforeach

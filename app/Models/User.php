@@ -88,7 +88,7 @@ class User extends Authenticatable
     /** @return BelongsTo<Branch, $this> */
     public function branch(): BelongsTo
     {
-        return $this->belongsTo(Branch::class);
+        return $this->belongsTo(Branch::class)->withTrashed();
     }
 
     public function hasPermission(Permission $permission): bool
