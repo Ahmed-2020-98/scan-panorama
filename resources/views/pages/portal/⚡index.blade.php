@@ -11,10 +11,8 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Livewire\WithPagination;
 
 new #[Layout('layouts::portal'), Title('حالاتي')] class extends Component {
-    use WithPagination;
     public function boot(): void { abort_unless(auth()->user()->hasPermission(\App\Enums\Permission::ViewCases),403); }
 
     #[Url(as: 'q', except: '')]
@@ -31,11 +29,6 @@ new #[Layout('layouts::portal'), Title('حالاتي')] class extends Component 
 
     #[Url(except: '')]
     public string $to = '';
-
-    public function updating(): void
-    {
-        $this->resetPage();
-    }
 
     public function clearFilters(): void
     {
@@ -60,7 +53,7 @@ new #[Layout('layouts::portal'), Title('حالاتي')] class extends Component 
             ->when($this->to, fn ($q) => $q->whereDate('exam_date', '<=', $this->to))
             ->orderByDesc('exam_date')
             ->orderByDesc('id')
-            ->paginate(25);
+            ->get();
     }
 
     /**
@@ -181,7 +174,7 @@ new #[Layout('layouts::portal'), Title('حالاتي')] class extends Component 
 
         @if ($this->hasFilters())
             <div class="flex items-center justify-between px-4 pt-3 text-sm text-zinc-500">
-                <span><span class="ltr-nums font-medium text-zinc-800">{{ $this->cases->total() }}</span> نتيجة</span>
+                <span><span class="ltr-nums font-medium text-zinc-800">{{ $this->cases->count() }}</span> نتيجة</span>
                 <flux:button size="sm" variant="ghost" icon="x-mark" wire:click="clearFilters">مسح الفلاتر</flux:button>
             </div>
         @endif
@@ -191,7 +184,7 @@ new #[Layout('layouts::portal'), Title('حالاتي')] class extends Component 
         @else
             {{-- Desktop table (same columns as the center's classic doctor page) --}}
             <div class="hidden px-4 pb-2 md:block">
-                <flux:table :paginate="$this->cases">
+                <flux:table>
                     <flux:table.columns>
                         <flux:table.column>التاريخ</flux:table.column>
                         <flux:table.column>اسم المريض</flux:table.column>
@@ -253,7 +246,6 @@ new #[Layout('layouts::portal'), Title('حالاتي')] class extends Component 
                         </div>
                     </div>
                 @endforeach
-                <div class="p-4">{{ $this->cases->links() }}</div>
             </div>
         @endif
     </x-panel>
