@@ -3,6 +3,7 @@
 use App\Http\Controllers\CaseFileController;
 use App\Http\Controllers\CaseUploadController;
 use App\Http\Controllers\DriveConnectionController;
+use App\Http\Controllers\PatientShareController;
 use App\Http\Controllers\SharedCaseController;
 use Illuminate\Support\Facades\Route;
 
@@ -76,6 +77,16 @@ Route::middleware('throttle:shared')->group(function () {
         ->where('token', '[A-Za-z0-9]{32,64}')
         ->whereIn('mode', ['view', 'download'])
         ->name('shared.file');
+
+    // Patient copy of the case link (no doctor-facing notes)
+    Route::get('p/{token}', [PatientShareController::class, 'show'])
+        ->where('token', '[A-Za-z0-9]{32,64}')
+        ->name('patient-share.show');
+
+    Route::get('p/{token}/files/{file}/{mode}', [PatientShareController::class, 'file'])
+        ->where('token', '[A-Za-z0-9]{32,64}')
+        ->whereIn('mode', ['view', 'download'])
+        ->name('patient-share.file');
 });
 
 require __DIR__.'/settings.php';

@@ -55,6 +55,19 @@ class CaseSharePanel extends Component
         ActivityLogger::log('share.whatsapp', $this->medicalCase);
     }
 
+    public function markPatientWhatsapp(): void
+    {
+        $this->authorize('share', $this->medicalCase);
+        ActivityLogger::log('share.patient_whatsapp', $this->medicalCase);
+    }
+
+    public function markPatientCopied(): void
+    {
+        $this->authorize('share', $this->medicalCase);
+        ActivityLogger::log('share.patient_copied', $this->medicalCase);
+        Flux::toast(text: 'تم نسخ رابط المريض.');
+    }
+
     public function regenerateLink(): void
     {
         $this->authorize('share', $this->medicalCase);

@@ -28,6 +28,7 @@ use Illuminate\Support\Str;
  * @property string|null $notes_internal
  * @property string|null $notes_for_doctor
  * @property string $share_token
+ * @property string|null $patient_share_token
  * @property CarbonInterface|null $share_expires_at
  * @property CarbonInterface|null $share_revoked_at
  * @property CarbonInterface|null $shared_at
@@ -283,6 +284,7 @@ class MedicalCase extends Model
     {
         $this->forceFill([
             'share_token' => self::newShareToken(),
+            'patient_share_token' => null,
             'share_revoked_at' => null,
             'share_expires_at' => self::defaultShareExpiry(),
         ])->save();
@@ -318,6 +320,42 @@ class MedicalCase extends Model
     public function whatsappUrl(): string
     {
         return Phone::whatsappUrl($this->doctor?->whatsappNumber(), $this->whatsappMessage());
+    }
+
+    /**
+     * Separate link for the patient: same expiry/revocation as the doctor link,
+     * but its own token and a view without the doctor-facing notes.
+     */
+    public function patientShareUrl(): string
+    {
+        if (! $this->patient_share_token) {
+            $this->forceFill(['patient_share_token' => self::newShareToken()])->save();
+        }
+
+        return route('patient-share.show', $this->patient_share_token);
+    }
+
+    public function patientWhatsappMessage(): string
+    {
+        $center = (string) Setting::get('center_name');
+        $phone = Setting::get('contact_phone');
+        $lines = array_filter([
+            $this->patient->identity_incomplete ? 'مرحبًا،' : 'مرحبًا '.$this->patient->name.'،',
+            'نتائج أشعتك من '.$center.' جاهزة.',
+            'الفحص: '.($this->examType->name ?? 'أشعة'),
+            'تاريخ الفحص: '.$this->exam_date->format('d/m/Y'),
+            '',
+            'لعرض وتحميل الملفات:',
+            $this->patientShareUrl(),
+            $phone ? "\nللاستفسار: ".$phone : null,
+        ], fn ($line) => $line !== null);
+
+        return implode("\n", $lines);
+    }
+
+    public function patientWhatsappUrl(): ?string
+    {
+        return Phone::isMobile($this->patient?->phone) ? Phone::whatsappUrl($this->patient->phone, $this->patientWhatsappMessage()) : null;
     }
 
     /**

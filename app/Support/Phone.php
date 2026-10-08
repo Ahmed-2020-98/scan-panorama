@@ -28,6 +28,18 @@ class Phone
     }
 
     /**
+     * Whether the number can receive WhatsApp: a local Egyptian mobile
+     * (01xxxxxxxxx) or a full international number.
+     */
+    public static function isMobile(?string $phone): bool
+    {
+        $digits = preg_replace('/\D+/', '', (string) $phone) ?? '';
+
+        // 01xxxxxxxxx locally, or a country code (optionally 00-prefixed) and 10-15 digits.
+        return preg_match('/^01[0125]\d{8}$/', $digits) === 1 || preg_match('/^(00)?[1-9]\d{9,14}$/', $digits) === 1;
+    }
+
+    /**
      * Build a WhatsApp click-to-chat link; without a number WhatsApp asks the
      * sender to pick the contact.
      */

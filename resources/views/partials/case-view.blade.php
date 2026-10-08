@@ -1,7 +1,9 @@
 {{--
     Doctor-facing view of a single case (portal page and public share link).
     Expects: $case (with patient, doctor.user, branch, examType, files) and $fileUrl = fn (CaseFile $file, string $mode): string
+    Optional: $forPatient = true hides doctor-facing notes and the doctor code (patient link).
 --}}
+@php($forPatient = $forPatient ?? false)
 @php($grouped = $case->files->groupBy(fn ($file) => $file->type->value))
 
 <div class="space-y-6">
@@ -21,7 +23,7 @@
             <div class="ruler mt-6"></div>
 
             <dl class="mt-4 flex flex-wrap gap-x-10 gap-y-4">
-                @foreach ([['نوع الفحص', ($case->examType?->name ?? 'لم يحدد'), true], ['تاريخ الفحص', $case->exam_date->format('d/m/Y'), true], ['الفرع', $case->branch->name, false], ['كود الطبيب', ($case->doctor?->code ?? '—'), true]] as [$label, $value, $mono])
+                @foreach ([['نوع الفحص', ($case->examType?->name ?? 'لم يحدد'), true], ['تاريخ الفحص', $case->exam_date->format('d/m/Y'), true], ['الفرع', $case->branch->name, false], ...($forPatient ? [] : [['كود الطبيب', ($case->doctor?->code ?? '—'), true]])] as [$label, $value, $mono])
                     <div>
                         <dt class="text-xs text-zinc-500">{{ $label }}</dt>
                         <dd class="mt-1 text-sm font-medium whitespace-nowrap text-zinc-100">
@@ -31,7 +33,7 @@
                 @endforeach
             </dl>
 
-            @if ($case->notes_for_doctor)
+            @if (! $forPatient && $case->notes_for_doctor)
                 <div class="mt-5 max-w-xl rounded-lg border border-phosphor/20 bg-phosphor/[6%] p-3 text-sm">
                     <div class="mb-1 text-xs font-medium text-phosphor">ملاحظات المركز</div>
                     <p class="whitespace-pre-line text-zinc-200">{{ $case->notes_for_doctor }}</p>
@@ -40,7 +42,7 @@
         </div>
     </section>
 
-    @if($case->medical_notes)<x-panel title="التقرير والملاحظات الطبية"><p class="whitespace-pre-line text-sm">{{ $case->medical_notes }}</p></x-panel>@endif
+    @if(! $forPatient && $case->medical_notes)<x-panel title="التقرير والملاحظات الطبية"><p class="whitespace-pre-line text-sm">{{ $case->medical_notes }}</p></x-panel>@endif
     @if ($case->files->isEmpty())
         <x-panel>
             <x-empty-state icon="clock" title="الملفات قيد التجهيز" text="لم يتم رفع ملفات هذه الحالة بعد، سيتم إتاحتها فور جاهزيتها." />
