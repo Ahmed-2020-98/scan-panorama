@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Branch;
 use App\Models\CaseFile;
+use App\Models\Doctor;
 use App\Models\MedicalCase;
 use App\Models\Patient;
 use App\Models\User;
@@ -22,7 +23,10 @@ class RecordRecovery
         }
         DB::transaction(function () use ($record) {
             $batch = (string) Str::uuid();
-            if ($record instanceof Branch) {
+            if ($record instanceof Doctor) {
+                // Cases keep the doctor; only the account stops working.
+                $record->user()->update(['is_active' => false]);
+            } elseif ($record instanceof Branch) {
                 MedicalCase::withoutGlobalScopes()->where('branch_id', $record->id)->whereNull('deleted_at')->each(function ($case) use ($batch) {
                     self::markCase($case, $batch);
                 });
@@ -50,7 +54,7 @@ class RecordRecovery
     {
         $record->forceFill(['deletion_batch_id' => $batch])->saveQuietly();
         ActivityLogger::log(self::kind($record).'.deleted', $record, ['name' => match (true) {
-            $record instanceof CaseFile => $record->original_name, $record instanceof Patient, $record instanceof Branch => $record->name, default => $record->getAttribute('case_code')
+            $record instanceof CaseFile => $record->original_name, $record instanceof Patient, $record instanceof Branch => $record->name, $record instanceof Doctor => $record->display_name, default => $record->getAttribute('case_code')
         }, 'batch' => $batch]);
         $record->delete();
     }
@@ -68,7 +72,9 @@ class RecordRecovery
         DB::transaction(function () use ($actor, $record) {
             $batch = $record->deletion_batch_id;
             $record->restore();
-            if ($batch && $record instanceof Branch) {
+            if ($record instanceof Doctor) {
+                $record->user()->update(['is_active' => true]);
+            } elseif ($batch && $record instanceof Branch) {
                 MedicalCase::withoutGlobalScopes()->onlyTrashed()->where('branch_id', $record->id)->where('deletion_batch_id', $batch)
                     ->each(fn ($case) => Patient::withTrashed()->find($case->patient_id)?->deleted_at === null ? self::restore($actor, $case) : null);
             } elseif ($batch && $record instanceof Patient) {
@@ -80,16 +86,16 @@ class RecordRecovery
         });
     }
 
-    /** @phpstan-assert-if-true Branch|Patient|MedicalCase|CaseFile $record */
+    /** @phpstan-assert-if-true Doctor|Branch|Patient|MedicalCase|CaseFile $record */
     private static function recoverable(Model $record): bool
     {
-        return $record instanceof Branch || $record instanceof Patient || $record instanceof MedicalCase || $record instanceof CaseFile;
+        return $record instanceof Doctor || $record instanceof Branch || $record instanceof Patient || $record instanceof MedicalCase || $record instanceof CaseFile;
     }
 
     private static function kind(Model $record): string
     {
         return match (true) {
-            $record instanceof Branch => 'branch', $record instanceof Patient => 'patient', $record instanceof CaseFile => 'file', default => 'case'
+            $record instanceof Doctor => 'doctor', $record instanceof Branch => 'branch', $record instanceof Patient => 'patient', $record instanceof CaseFile => 'file', default => 'case'
         };
     }
 }

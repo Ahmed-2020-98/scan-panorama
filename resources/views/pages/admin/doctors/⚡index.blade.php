@@ -26,6 +26,13 @@ new #[Title('الأطباء')] class extends Component {
             ->orderByName()
             ->get();
     }
+
+    public function delete(int $id): void
+    {
+        \App\Services\RecordRecovery::delete(auth()->user(), Doctor::findOrFail($id));
+        unset($this->doctors);
+        \Flux\Flux::toast(variant: 'success', text: 'تم حذف الطبيب إلى «المحذوفات» وتعطيل حسابه. حالاته باقية باسمه.');
+    }
 }; ?>
 
 <div class="mx-auto w-full max-w-7xl">
@@ -89,6 +96,8 @@ new #[Title('الأطباء')] class extends Component {
                                 </flux:table.cell>
                                 <flux:table.cell align="end">
                                     <flux:button size="sm" variant="ghost" icon="pencil-square" :href="route('doctors.edit', $doctor)" wire:navigate>تعديل</flux:button>
+                                    <flux:button size="sm" variant="ghost" icon="trash" class="text-red-600!" wire:click="delete({{ $doctor->id }})"
+                                        wire:confirm="{{ 'حذف '.$doctor->display_name.'؟ سيتعطل حسابه ويختفي من قوائم الأطباء'.($doctor->cases_count ? '، وتبقى حالاته الـ'.$doctor->cases_count.' محفوظة باسمه' : '').'. يمكن استرجاعه من «المحذوفات».' }}">حذف</flux:button>
                                 </flux:table.cell>
                             </flux:table.row>
                         @endforeach

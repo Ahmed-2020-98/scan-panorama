@@ -116,7 +116,7 @@ class MedicalCase extends Model
      */
     public function doctor(): BelongsTo
     {
-        return $this->belongsTo(Doctor::class);
+        return $this->belongsTo(Doctor::class)->withTrashed();
     }
 
     /**

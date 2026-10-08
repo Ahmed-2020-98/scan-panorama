@@ -22,7 +22,7 @@ class DoctorVisit extends Model
     /** @return BelongsTo<Doctor, $this> */
     public function doctor(): BelongsTo
     {
-        return $this->belongsTo(Doctor::class);
+        return $this->belongsTo(Doctor::class)->withTrashed();
     }
 
     /** @return BelongsTo<Branch, $this> */
