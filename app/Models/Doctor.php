@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Database\Factories\DoctorFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,6 +22,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $specialty
  * @property string|null $notes
  * @property string|null $deletion_batch_id
+ * @property bool|null $user_was_active
+ * @property CarbonInterface|null $deleted_at
  * @property-read User $user
  * @property-read string $display_name
  */
@@ -52,6 +55,22 @@ class Doctor extends Model
     public function cases(): HasMany
     {
         return $this->hasMany(MedicalCase::class);
+    }
+
+    protected function casts(): array
+    {
+        return ['user_was_active' => 'boolean'];
+    }
+
+    /** Last day a deleted doctor can still be restored. */
+    public function restorableUntil(): ?CarbonInterface
+    {
+        return $this->deleted_at?->addDays((int) config('radiology.doctor_restore_days', 30));
+    }
+
+    public function isRestorable(): bool
+    {
+        return $this->deleted_at !== null && $this->restorableUntil()?->isFuture() === true;
     }
 
     public function getDisplayNameAttribute(): string

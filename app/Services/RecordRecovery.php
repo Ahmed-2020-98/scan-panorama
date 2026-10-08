@@ -24,7 +24,8 @@ class RecordRecovery
         DB::transaction(function () use ($record) {
             $batch = (string) Str::uuid();
             if ($record instanceof Doctor) {
-                // Cases keep the doctor; only the account stops working.
+                // Cases keep the doctor; the account stops working and its state is kept for restore.
+                $record->forceFill(['user_was_active' => (bool) $record->user->is_active])->saveQuietly();
                 $record->user()->update(['is_active' => false]);
             } elseif ($record instanceof Branch) {
                 MedicalCase::withoutGlobalScopes()->where('branch_id', $record->id)->whereNull('deleted_at')->each(function ($case) use ($batch) {
@@ -65,6 +66,9 @@ class RecordRecovery
         if ($record instanceof CaseFile) {
             abort_unless(MedicalCase::withTrashed()->find($record->medical_case_id)?->deleted_at === null, 422, 'استرجع الحالة أولًا.');
         }
+        if ($record instanceof Doctor) {
+            abort_unless($record->isRestorable(), 422, 'انتهت مدة استرجاع الطبيب ('.(int) config('radiology.doctor_restore_days', 30).' يومًا).');
+        }
         if ($record instanceof MedicalCase) {
             abort_unless(Patient::withTrashed()->find($record->patient_id)?->deleted_at === null, 422, 'استرجع المريض أولًا.');
             abort_unless(Branch::withTrashed()->find($record->branch_id)?->deleted_at === null, 422, 'استرجع الفرع أولًا.');
@@ -73,7 +77,8 @@ class RecordRecovery
             $batch = $record->deletion_batch_id;
             $record->restore();
             if ($record instanceof Doctor) {
-                $record->user()->update(['is_active' => true]);
+                $record->user()->update(['is_active' => $record->user_was_active ?? true]);
+                $record->forceFill(['user_was_active' => null])->saveQuietly();
             } elseif ($batch && $record instanceof Branch) {
                 MedicalCase::withoutGlobalScopes()->onlyTrashed()->where('branch_id', $record->id)->where('deletion_batch_id', $batch)
                     ->each(fn ($case) => Patient::withTrashed()->find($case->patient_id)?->deleted_at === null ? self::restore($actor, $case) : null);

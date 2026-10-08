@@ -31,7 +31,7 @@ new #[Title('الأطباء')] class extends Component {
     {
         \App\Services\RecordRecovery::delete(auth()->user(), Doctor::findOrFail($id));
         unset($this->doctors);
-        \Flux\Flux::toast(variant: 'success', text: 'تم حذف الطبيب إلى «المحذوفات» وتعطيل حسابه. حالاته باقية باسمه.');
+        \Flux\Flux::toast(variant: 'success', text: 'تم حذف الطبيب. يمكن استرجاعه من «المحذوفات» خلال '.(int) config('radiology.doctor_restore_days', 30).' يومًا.');
     }
 }; ?>
 
@@ -97,7 +97,7 @@ new #[Title('الأطباء')] class extends Component {
                                 <flux:table.cell align="end">
                                     <flux:button size="sm" variant="ghost" icon="pencil-square" :href="route('doctors.edit', $doctor)" wire:navigate>تعديل</flux:button>
                                     <flux:button size="sm" variant="ghost" icon="trash" class="text-red-600!" wire:click="delete({{ $doctor->id }})"
-                                        wire:confirm="{{ 'حذف '.$doctor->display_name.'؟ سيتعطل حسابه ويختفي من قوائم الأطباء'.($doctor->cases_count ? '، وتبقى حالاته الـ'.$doctor->cases_count.' محفوظة باسمه' : '').'. يمكن استرجاعه من «المحذوفات».' }}">حذف</flux:button>
+                                        wire:confirm="{{ 'حذف '.$doctor->display_name.'؟ سيتعطل حسابه ويختفي من قوائم الأطباء'.($doctor->cases_count ? '، وتبقى حالاته الـ'.$doctor->cases_count.' محفوظة باسمه' : '').'. يمكن استرجاعه بحالته كاملة من «المحذوفات» خلال '.(int) config('radiology.doctor_restore_days', 30).' يومًا.' }}">حذف</flux:button>
                                 </flux:table.cell>
                             </flux:table.row>
                         @endforeach

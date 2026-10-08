@@ -58,6 +58,13 @@ return [
     |
     */
 
+    /*
+    | Days a deleted doctor stays restorable in the recycle bin. Afterwards the
+    | doctor is purged (with the login) if nothing references them; doctors with
+    | cases or visits stay archived so case history keeps the name.
+    */
+    'doctor_restore_days' => 30,
+
     'default_font' => 'tajawal',
 
     'fonts' => [

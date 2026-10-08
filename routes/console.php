@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('uploads:prune')->hourly();
+Schedule::command('doctors:purge')->daily();
 
 // Shared hosting has no supervisor, so the scheduler (cron every minute) drains the
 // queue: Drive transfers run here. The lock outlives the longest job (timeout 1800s).
