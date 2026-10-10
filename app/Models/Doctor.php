@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Phone;
 use Carbon\CarbonInterface;
 use Database\Factories\DoctorFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -23,6 +24,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $notes
  * @property string|null $deletion_batch_id
  * @property bool|null $user_was_active
+ * @property string|null $link_token
  * @property CarbonInterface|null $deleted_at
  * @property-read User $user
  * @property-read string $display_name
@@ -71,6 +73,52 @@ class Doctor extends Model
     public function isRestorable(): bool
     {
         return $this->deleted_at !== null && $this->restorableUntil()?->isFuture() === true;
+    }
+
+    /** The doctor's private cases link; created on first use. */
+    public function linkUrl(): string
+    {
+        if (! $this->link_token) {
+            $this->forceFill(['link_token' => MedicalCase::newShareToken()])->save();
+        }
+
+        return route('doctor-link.index', $this->link_token);
+    }
+
+    public function regenerateLink(): void
+    {
+        $this->forceFill(['link_token' => MedicalCase::newShareToken()])->save();
+    }
+
+    public function revokeLink(): void
+    {
+        $this->forceFill(['link_token' => null])->save();
+    }
+
+    public function linkWhatsappUrl(): string
+    {
+        $message = implode("\n", [
+            'مرحبًا '.$this->display_name.'،',
+            'هذا رابطك الخاص لعرض كل حالاتك وملفات الأشعة في '.Setting::get('center_name').':',
+            $this->linkUrl(),
+            '',
+            'احفظ الرابط؛ تظهر فيه الحالات الجديدة تلقائيًا. لا تشاركه مع أحد.',
+        ]);
+
+        return Phone::whatsappUrl($this->whatsappNumber(), $message);
+    }
+
+    /**
+     * Cases reachable from the doctor's link: the same set the doctor sees in the portal.
+     *
+     * @return Builder<MedicalCase>
+     */
+    public function linkCases(): Builder
+    {
+        return MedicalCase::withoutGlobalScope('access')
+            ->where('doctor_id', $this->id)
+            ->whereIn('branch_id', $this->branches()->pluck('branches.id'))
+            ->whereHas('patient', fn ($q) => $q->withoutGlobalScope('access'));
     }
 
     public function getDisplayNameAttribute(): string

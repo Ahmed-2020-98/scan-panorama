@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CaseFileController;
 use App\Http\Controllers\CaseUploadController;
+use App\Http\Controllers\DoctorLinkController;
 use App\Http\Controllers\DriveConnectionController;
 use App\Http\Controllers\PatientShareController;
 use App\Http\Controllers\SharedCaseController;
@@ -77,6 +78,21 @@ Route::middleware('throttle:shared')->group(function () {
         ->where('token', '[A-Za-z0-9]{32,64}')
         ->whereIn('mode', ['view', 'download'])
         ->name('shared.file');
+
+    // Doctor's private link: all of the doctor's cases without logging in
+    Route::get('d/{token}', [DoctorLinkController::class, 'index'])
+        ->where('token', '[A-Za-z0-9]{32,64}')
+        ->name('doctor-link.index');
+
+    Route::get('d/{token}/cases/{case}', [DoctorLinkController::class, 'show'])
+        ->where('token', '[A-Za-z0-9]{32,64}')
+        ->whereNumber('case')
+        ->name('doctor-link.case');
+
+    Route::get('d/{token}/files/{file}/{mode}', [DoctorLinkController::class, 'file'])
+        ->where('token', '[A-Za-z0-9]{32,64}')
+        ->whereIn('mode', ['view', 'download'])
+        ->name('doctor-link.file');
 
     // Patient copy of the case link (no doctor-facing notes)
     Route::get('p/{token}', [PatientShareController::class, 'show'])

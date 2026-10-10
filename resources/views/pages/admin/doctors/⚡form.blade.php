@@ -163,4 +163,8 @@ new #[Title('بيانات الطبيب')] class extends Component {
             <flux:button type="submit" variant="primary">{{ $record ? 'حفظ' : 'إنشاء الحساب' }}</flux:button>
         </div>
     </form>
+
+    @if ($record)
+        <div class="mt-6"><livewire:doctor-link-panel :doctor="$record" :key="'doctor-link-'.$record->id" /></div>
+    @endif
 </div>
