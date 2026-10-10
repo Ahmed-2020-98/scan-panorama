@@ -38,7 +38,7 @@ class FinancialReport
     {
         [$from,$to] = self::period($actor, $filters);
 
-        return AccessScope::cases($actor)->withTrashed()->whereBetween('exam_date', [$from, $to])->when($filters['branch'] ?? null, fn ($q, $branch) => $q->where('branch_id', $branch));
+        return AccessScope::cases($actor)->withTrashed()->whereDate('exam_date', '>=', $from)->whereDate('exam_date', '<=', $to)->when($filters['branch'] ?? null, fn ($q, $branch) => $q->where('branch_id', $branch));
     }
 
     /**
@@ -65,8 +65,11 @@ class FinancialReport
         foreach (self::payments($actor, $filters)->selectRaw('currency, SUM(amount_minor) as collected')->groupBy('currency')->get() as $row) {
             $totals[$row->currency] = ($totals[$row->currency] ?? ['currency' => $row->currency, 'base' => 0, 'discount' => 0, 'billed' => 0]) + ['collected' => (int) $row->getAttribute('collected')];
         }
-        foreach ($totals as &$row) {
+        $paidOnCases = Payment::whereIn('medical_case_id', (clone $cases)->whereNotNull('final_price_minor')->select('id'))
+            ->selectRaw('currency, SUM(amount_minor) as paid')->groupBy('currency')->pluck('paid', 'currency');
+        foreach ($totals as $currency => &$row) {
             $row['collected'] ??= 0;
+            $row['outstanding'] = max(0, (int) $row['billed'] - (int) ($paidOnCases[$currency] ?? 0));
         }
 
         return ['currencies' => $totals, 'cases' => (clone $cases)->count(), 'unpriced' => (clone $cases)->whereNull('final_price_minor')->count(), 'by_exam' => (clone $cases)->with('examType')->selectRaw('exam_type_id, COUNT(*) as total')->groupBy('exam_type_id')->get()];

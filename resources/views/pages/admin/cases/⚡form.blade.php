@@ -22,17 +22,14 @@ new #[Title('بيانات الحالة')] class extends Component {
     public string $notes_for_doctor = '';
     public string $notes_internal = '';
     public string $base_price = '';
-    public string $final_price = '';
-    public string $discount_reason = '';
     public function mount(?MedicalCase $case = null): void {
         $this->authorize($case?->exists ? 'update' : 'create', $case?->exists ? $case : MedicalCase::class);
         if ($case?->exists) {
             $this->medicalCase = $case;
             $this->patient_id = $case->patient_id;
-            foreach (['doctor_id','technician_id','branch_id','exam_type_id','case_code','notes_for_doctor','notes_internal','discount_reason'] as $key) { $this->{$key} = (string) $case->{$key}; }
+            foreach (['doctor_id','technician_id','branch_id','exam_type_id','case_code','notes_for_doctor','notes_internal'] as $key) { $this->{$key} = (string) $case->{$key}; }
             $this->exam_date = $case->exam_date->toDateString();
-            $this->base_price = Money::decimal($case->base_price_minor);
-            $this->final_price = Money::decimal($case->final_price_minor);
+            $this->base_price = Money::decimal($case->final_price_minor ?? $case->base_price_minor);
         } else {
             $this->exam_date = today()->toDateString();
             $this->branch_id = (string) (auth()->user()->branch_id ?? AccessScope::branches(auth()->user())->active()->value('id'));
@@ -73,7 +70,7 @@ new #[Title('بيانات الحالة')] class extends Component {
     public function updatedExamTypeId(): void { $this->quote(); }
     private function quote(): void {
         $price = ($exam = ExamType::find($this->exam_type_id)) && ($branch = AccessScope::branches(auth()->user())->find($this->branch_id)) ? CasePricing::quote($exam,$branch) : null;
-        $this->base_price = Money::decimal($price); $this->final_price = $this->base_price; $this->discount_reason = '';
+        $this->base_price = Money::decimal($price);
     }
     public function save(): void {
         $this->authorize($this->isEditing() ? 'update' : 'create', $this->medicalCase ?? MedicalCase::class);
@@ -86,9 +83,10 @@ new #[Title('بيانات الحالة')] class extends Component {
                 'exam_type_id'=>$this->exam_type_id ?: null,'exam_date'=>$this->exam_date,'notes_for_doctor'=>$this->notes_for_doctor,'notes_internal'=>$this->notes_internal,
                 'case_code'=>auth()->user()->isAdmin() ? $this->case_code : null,
             ],$this->medicalCase);
-            if ($this->base_price !== '' && $this->final_price !== '') {
-                CasePricing::apply(auth()->user(),$case,Money::minor($this->base_price),Money::minor($this->final_price),$this->discount_reason);
-            } elseif ($this->base_price !== '' || $this->final_price !== '') { $this->addError('final_price','أدخل السعر الأساسي والنهائي معًا.'); throw \Illuminate\Validation\ValidationException::withMessages(['final_price'=>'أدخل السعر الأساسي والنهائي معًا.']); }
+            if ($this->base_price !== '' && Money::minor($this->base_price) !== $case->final_price_minor) {
+                $price = Money::minor($this->base_price);
+                CasePricing::apply(auth()->user(),$case,$price,$price,null);
+            }
             return $case;
         });
         Flux::toast(variant:'success',text:'تم حفظ الحالة '.$case->case_code);
@@ -133,13 +131,12 @@ new #[Title('بيانات الحالة')] class extends Component {
                 @if($this->isEditing() && auth()->user()->isAdmin())<flux:input wire:model="case_code" label="كود الحالة" dir="ltr" />@endif
             </div>
         </x-panel>
-        <details class="rounded-xl border bg-white p-5" @if($base_price !== '' || $final_price !== '') open @endif><summary class="cursor-pointer font-medium">السعر والخصم <span class="text-sm font-normal text-zinc-500">(يمكن استكماله لاحقًا)</span></summary><div class="mt-4"><x-panel title="السعر والخصم" icon="banknotes">
+        <details class="rounded-xl border bg-white p-5" @if($base_price !== '') open @endif><summary class="cursor-pointer font-medium">قيمة الفحص <span class="text-sm font-normal text-zinc-500">(يمكن استكمالها لاحقًا)</span></summary><div class="mt-4"><x-panel title="قيمة الفحص" icon="banknotes">
             @if(! Setting::get('currency'))<p class="mb-4 text-sm text-amber-800">يحدد المدير العملة من إعدادات المركز قبل تسجيل الأسعار. يمكن حفظ الحالة بدون سعر.</p>@endif
             <div class="grid gap-4 sm:grid-cols-2">
-                <flux:input wire:model="base_price" label="السعر الأساسي" inputmode="decimal" :disabled="!auth()->user()->isAdmin() && $this->isEditing() && $medicalCase->base_price_minor !== null" />
-                <flux:input wire:model="final_price" label="السعر النهائي" inputmode="decimal" />
-                <flux:textarea wire:model="discount_reason" label="سبب الخصم" rows="2" class="sm:col-span-2" />
+                <flux:input wire:model="base_price" label="قيمة الفحص" inputmode="decimal" :disabled="!auth()->user()->isAdmin() && $this->isEditing() && $medicalCase->base_price_minor !== null" />
             </div>
+            <flux:error name="final_price" />
             <flux:error name="price" />
         </x-panel></div></details>
         <details class="rounded-xl border bg-white p-5"><summary class="cursor-pointer font-medium">ملاحظات إضافية</summary><div class="mt-4 grid gap-4 sm:grid-cols-2"><flux:textarea wire:model="notes_for_doctor" label="ملاحظات للطبيب" rows="3" /><flux:textarea wire:model="notes_internal" label="ملاحظات داخلية" rows="3" /></div></details>

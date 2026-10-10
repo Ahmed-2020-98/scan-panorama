@@ -23,6 +23,7 @@ use App\Services\CasePayments;
 use App\Services\CasePricing;
 use App\Services\CaseRegistration;
 use App\Services\Drive\DriveCaseStorage;
+use App\Services\FinancialReport;
 use App\Services\RecordRecovery;
 use App\Support\Money;
 use App\Support\PatientAge;
@@ -150,6 +151,16 @@ class RadiologyMvpTest extends TestCase
         CasePayments::refund($this->manager, $payment, 10000, 'رد جزء من الدفعة', (string) Str::uuid());
         $this->assertEquals(10000, $case->payments()->sum('amount_minor'));
         $this->assertDatabaseHas('activity_logs', ['action' => 'price.discounted', 'medical_case_id' => $case->id]);
+    }
+
+    public function test_accounts_show_collected_outstanding_and_exam_value_without_discounts(): void
+    {
+        $case = $this->draft();
+        CasePricing::apply($this->manager, $case, 100000, 100000, null);
+        CasePayments::receive($this->manager, $case, 30000, 'cash', (string) Str::uuid());
+        $row = FinancialReport::summarize($this->manager, ['from' => today()->toDateString(), 'to' => today()->toDateString()])['currencies']['EGP'];
+        $this->assertSame([100000, 30000, 70000], [(int) $row['billed'], (int) $row['collected'], $row['outstanding']]);
+        $this->get(route('accounts.index'))->assertOk()->assertSee('المتبقي')->assertDontSee('الخصومات');
     }
 
     public function test_reception_daily_finance_and_clinical_roles_never_see_finance(): void
