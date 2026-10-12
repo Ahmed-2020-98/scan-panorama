@@ -1,4 +1,5 @@
 <x-print-sheet title="بيانات الحالة">
+    <div class="barcode" style="align-items:flex-start;margin:-6px 0 14px">{!! \App\Support\Barcode::svg($case->case_code, 48) !!}<span>{{ $case->case_code }}</span></div>
     <div class="grid">
         <div><span>المريض</span>{{ $case->patient->name }}</div>
         <div><span>رقم الملف</span><b class="ltr num">{{ $case->patient->file_number }}</b></div>

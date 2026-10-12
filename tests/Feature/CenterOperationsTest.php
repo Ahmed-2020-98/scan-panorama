@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Services\CasePricing;
 use App\Services\CenterAlerts;
 use App\Services\DoctorPerformance;
+use App\Support\Barcode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -213,14 +214,32 @@ class CenterOperationsTest extends TestCase
         $patient = Patient::factory()->create(['phone' => null]);
         $case = MedicalCase::factory()->create(['patient_id' => $patient->id, 'doctor_id' => $doctor->id, 'branch_id' => $this->branch->id, 'exam_date' => today()]);
 
-        $this->get(route('cases.print', $case))->assertOk()->assertSee($case->case_code)->assertSee('window.print');
-        $this->get(route('cases.receipt', $case))->assertOk()->assertSee('المتبقي');
+        $this->get(route('cases.print', $case))->assertOk()->assertSee($case->case_code)->assertSee('window.print')->assertSee('class="barcode"', false);
+        $this->get(route('cases.receipt', $case))->assertOk()->assertSee('المتبقي')->assertSee('class="barcode"', false);
         $this->get(route('accounts.print'))->assertOk()->assertSee('تقرير الحسابات');
 
         Livewire::test('pages::admin.cases.form', ['case' => $case])
             ->assertSet('doctor_id', (string) $doctor->id)
             ->set('patientPhone', '01055556666')->call('save')->assertHasNoErrors();
         $this->assertSame('01055556666', $patient->fresh()->phone);
+    }
+
+    public function test_case_barcode_is_valid_code128(): void
+    {
+        $modules = Barcode::modules('2026-00042');
+        // start + 10 chars + checksum = 12 symbols of 11 modules, stop adds 13.
+        $this->assertSame(12 * 11 + 13, array_sum(str_split($modules)));
+        $this->assertStringStartsWith('211214', $modules);
+        $this->assertStringEndsWith('2331112', $modules);
+
+        // Each data symbol matches that character encoded alone (start, char, checksum, stop).
+        $symbols = str_split(substr($modules, 0, -7), 6);
+        foreach (str_split('2026-00042') as $i => $char) {
+            $this->assertSame(str_split(Barcode::modules($char), 6)[1], $symbols[$i + 1]);
+        }
+        // '2026-00042' → (104 + Σ value × position) mod 103 = 27, symbol 27 = '312212'.
+        $this->assertSame('312212', $symbols[11]);
+        $this->assertStringContainsString('<svg', Barcode::svg('2026-00042'));
     }
 
     public function test_doctor_clinic_details_are_saved(): void
