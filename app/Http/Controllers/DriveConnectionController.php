@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\MigrateDriveFiles;
 use App\Models\DriveConnection;
 use App\Services\Drive\DriveMigration;
 use App\Support\ActivityLogger;
-use App\Support\QueueKick;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -54,8 +52,7 @@ class DriveConnectionController extends Controller
             DriveMigration::cancel();
             DriveConnection::create(['refresh_token' => $response->json('refresh_token'), 'account_id' => $accountId, 'account_email' => $email, 'role' => 'target']);
             ActivityLogger::log('drive.migration_started', null, ['to' => $email]);
-            MigrateDriveFiles::dispatch();
-            QueueKick::drainAfterResponse();
+            DriveMigration::runAfterResponse();
 
             return redirect()->route('drive.settings')->with('drive_success', 'تم ربط الحساب الجديد وبدأ نقل الملفات إليه. اترك هذه الصفحة مفتوحة حتى يكتمل النقل.');
         }

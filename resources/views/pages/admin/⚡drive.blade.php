@@ -1,8 +1,7 @@
 <?php
-use App\Jobs\MigrateDriveFiles;
 use App\Models\{DriveConnection,CaseFile};
 use App\Services\Drive\DriveMigration;
-use App\Support\{ActivityLogger,QueueKick};
+use App\Support\ActivityLogger;
 use Flux\Flux;
 use Livewire\Attributes\{Title,Computed};
 use Livewire\Component;
@@ -11,7 +10,7 @@ new #[Title('Google Drive والملفات')] class extends Component {
     public function boot(): void { abort_unless(auth()->user()->isAdmin(),403); }
     public function mount(): void {
         $this->sharedDriveId=(string)DriveConnection::active()?->shared_drive_id;
-        if (DriveConnection::target()) { QueueKick::drainAfterResponse(); }
+        if (DriveConnection::target()) { DriveMigration::runAfterResponse(); }
     }
     public function save(): void {
         $this->validate(['sharedDriveId'=>['nullable','regex:/^[A-Za-z0-9_-]+$/','max:200']]);
@@ -19,15 +18,15 @@ new #[Title('Google Drive والملفات')] class extends Component {
         abort_if($connection->root_folder_id || CaseFile::where('disk','drive')->exists(),422,'لا يمكن تغيير وجهة التخزين بعد بدء رفع الملفات.');
         $connection->update(['shared_drive_id'=>$this->sharedDriveId ?: null]); ActivityLogger::log('drive.destination_updated'); Flux::toast(text:'تم حفظ وجهة Drive.');
     }
-    /** Polled while a migration runs: keeps the copy going on hosts without a worker. */
+    /** Polled while a migration runs: each poll copies a short slice (hosts kill long processes). */
     public function tick(): void {
         unset($this->migration, $this->counts);
-        if (DriveConnection::target()) { QueueKick::drainAfterResponse(); }
+        if (DriveConnection::target()) { DriveMigration::runAfterResponse(); }
     }
     public function retry(): void {
         abort_unless(DriveConnection::target(), 404);
         \Illuminate\Support\Facades\Cache::forget('drive-migration-failed');
-        MigrateDriveFiles::dispatch(); QueueKick::drainAfterResponse();
+        DriveMigration::runAfterResponse();
         Flux::toast(text:'تمت إعادة محاولة نقل الملفات المتبقية.');
     }
     public function cancel(): void {

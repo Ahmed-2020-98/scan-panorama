@@ -90,6 +90,9 @@ class DriveMigrationTest extends TestCase
         $this->actingAs($admin);
         $old = DriveConnection::create(['refresh_token' => 't', 'account_id' => 'old', 'account_email' => 'old@gmail.com']);
         DriveConnection::create(['refresh_token' => 't2', 'account_id' => 'new', 'account_email' => 'new@gmail.com', 'role' => 'target']);
+        // One file still to copy, and Google unreachable: the page's copy slice can't finish.
+        CaseFile::factory()->create(['disk' => 'drive', 'storage_status' => 'ready', 'provider_id' => 'old-a', 'size' => 3, 'uploaded_by' => $admin->id]);
+        Http::fake(fn () => Http::response([], 500));
 
         Livewire::test('pages::admin.drive')->assertSee('new@gmail.com')->assertSee('نقل الملفات إلى الحساب الجديد')
             ->call('cancel');
@@ -97,5 +100,18 @@ class DriveMigrationTest extends TestCase
         $this->assertNull(DriveConnection::target());
         $this->assertSame('active', $old->fresh()->role);
         Livewire::test('pages::admin.drive')->assertSee('old@gmail.com')->assertSee('نقل الملفات إلى حساب Google آخر');
+    }
+
+    public function test_page_poll_copies_a_slice_after_the_response(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $old = DriveConnection::create(['refresh_token' => 't', 'account_id' => 'old', 'account_email' => 'old@gmail.com']);
+        $new = DriveConnection::create(['refresh_token' => 't2', 'account_id' => 'new', 'account_email' => 'new@gmail.com', 'role' => 'target']);
+
+        // Nothing left to copy, so the slice run after the poll's response switches accounts.
+        Livewire::test('pages::admin.drive')->call('tick');
+        app()->terminate();
+        $this->assertSame('active', $new->fresh()->role);
+        $this->assertSame('retired', $old->fresh()->role);
     }
 }

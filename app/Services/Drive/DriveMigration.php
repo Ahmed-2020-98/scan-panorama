@@ -36,6 +36,20 @@ class DriveMigration
     }
 
     /**
+     * Copy a short slice once the current request has been answered. Shared hosting
+     * kills long-running PHP processes, so the Drive page's poll keeps calling this
+     * in small slices instead of one long queue job; the lock keeps one copier at a time.
+     */
+    public static function runAfterResponse(int $seconds = 40): void
+    {
+        app()->terminating(static function () use ($seconds): void {
+            ignore_user_abort(true);
+            @set_time_limit(0);
+            app(self::class)->run($seconds);
+        });
+    }
+
+    /**
      * Copy files for up to $seconds. Returns true once the switch has happened.
      */
     public function run(int $seconds): bool
@@ -46,7 +60,7 @@ class DriveMigration
             return true;
         }
 
-        $lock = Cache::lock('drive-migration', $seconds + 120);
+        $lock = Cache::lock('drive-migration', $seconds + 90);
         if (! $lock->get()) {
             return false;
         }
