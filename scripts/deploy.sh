@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deploy to clinic-ksa.online (Hostinger shared hosting, PHP 8.4 via .htaccess handler).
+# Deploy to the live domain (Hostinger shared hosting, PHP 8.4 via .htaccess handler).
 # Keeps the server's .env, database and uploaded files untouched.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -7,7 +7,8 @@ cd "$(dirname "$0")/.."
 HOST="u300114289@82.29.182.140"
 PORT=65002
 KEY="$HOME/.ssh/id_ed25519_hostinger"
-REMOTE="domains/clinic-ksa.online/app"
+DOMAIN="${DOMAIN:-clinic-ksa.online}"
+REMOTE="domains/$DOMAIN/app"
 SSH=(ssh -i "$KEY" -p "$PORT" -o IdentitiesOnly=yes "$HOST")
 
 npm run build
@@ -30,4 +31,4 @@ rm /tmp/clinic-deploy.tar.gz
   \$PHP artisan queue:restart || true
   \$PHP artisan up"
 
-echo "Deployed: https://clinic-ksa.online"
+echo "Deployed: https://$DOMAIN"
