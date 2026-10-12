@@ -214,8 +214,9 @@ class CenterOperationsTest extends TestCase
         $patient = Patient::factory()->create(['phone' => null]);
         $case = MedicalCase::factory()->create(['patient_id' => $patient->id, 'doctor_id' => $doctor->id, 'branch_id' => $this->branch->id, 'exam_date' => today()]);
 
-        $this->get(route('cases.print', $case))->assertOk()->assertSee($case->case_code)->assertSee('window.print')->assertSee('class="barcode"', false);
-        $this->get(route('cases.receipt', $case))->assertOk()->assertSee('المتبقي')->assertSee('class="barcode"', false);
+        $this->get(route('cases.print', $case))->assertOk()->assertSee($case->case_code)->assertSee('window.print')->assertSee('class="barcode"', false)->assertSee('امسح لفتح الحالة');
+        $this->get(route('cases.receipt', $case))->assertOk()->assertSee('المتبقي')->assertSee('class="barcode"', false)->assertSee('لعرض أشعتك');
+        $this->assertNotNull($case->fresh()->patient_share_token);
         $this->get(route('accounts.print'))->assertOk()->assertSee('تقرير الحسابات');
 
         Livewire::test('pages::admin.cases.form', ['case' => $case])

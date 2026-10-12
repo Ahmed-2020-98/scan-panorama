@@ -35,6 +35,7 @@
         .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 12px 0 18px; }
         .kpi { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; } .kpi b { display: block; font-size: 18px; }
         .barcode { display: flex; flex-direction: column; align-items: center; gap: 2px; direction: ltr; } .barcode svg { max-width: 100%; height: auto; } .barcode span { font: 600 12px/1 ui-monospace, monospace; letter-spacing: 2px; }
+        .codes { display: flex; align-items: center; justify-content: space-between; gap: 16px; direction: ltr; } .qr { display: flex; flex-direction: column; align-items: center; gap: 2px; direction: rtl; } .qr svg { display: block; } .qr small { color: var(--muted); font-size: 10px; }
         .total { display: flex; justify-content: space-between; font-weight: 800; font-size: 15px; border-top: 2px dashed var(--ink); padding-top: 8px; margin-top: 8px; }
         footer { margin-top: 24px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; display: flex; justify-content: space-between; }
         .toolbar { position: sticky; top: 0; display: flex; justify-content: center; gap: 8px; padding: 10px; background: #0b1730; }

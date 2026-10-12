@@ -2,9 +2,15 @@
 
 namespace App\Support;
 
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
+
 /**
  * Code 128 (set B) barcode rendered as inline SVG, so case printouts carry a
- * scannable code without a package. A USB scanner types the code back into search.
+ * scannable code without a package. A USB scanner types the code back into search;
+ * the QR beside it opens a link straight from a phone camera.
  */
 class Barcode
 {
@@ -62,5 +68,13 @@ class Barcode
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %1$s %2$d" width="%1$s" height="%2$d" role="img" aria-label="%3$s" shape-rendering="crispEdges" fill="#000">%4$s</svg>',
             $total, $height, e($text), $rects,
         );
+    }
+
+    /** QR code as inline SVG (no XML prolog) for a URL a phone camera can open. */
+    public static function qr(string $url, int $size = 110): string
+    {
+        $svg = (new Writer(new ImageRenderer(new RendererStyle($size, 1), new SvgImageBackEnd)))->writeString($url);
+
+        return trim(substr($svg, (int) strpos($svg, "\n") + 1));
     }
 }

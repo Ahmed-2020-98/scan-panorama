@@ -21,5 +21,8 @@
     <div style="display:flex;justify-content:space-between;margin-top:4px"><span>المدفوع</span><span class="num">{{ $m($paid) }}</span></div>
     <div style="display:flex;justify-content:space-between;font-weight:700"><span>المتبقي</span><span class="num">{{ $case->final_price_minor === null ? '—' : $m($case->final_price_minor - $paid) }}</span></div>
     <div class="barcode" style="margin-top:12px">{!! \App\Support\Barcode::svg($case->case_code, 40, 1.2) !!}<span>{{ $case->case_code }}</span></div>
+    @if($case->isShareActive())
+        <div class="qr" style="margin-top:10px">{!! \App\Support\Barcode::qr($case->patientShareUrl(), 110) !!}<small>امسح بكاميرا الموبايل لعرض أشعتك</small></div>
+    @endif
     <p class="muted" style="text-align:center;margin-top:8px">شكرًا لثقتكم — نتمنى لكم دوام الصحة</p>
 </x-print-sheet>
