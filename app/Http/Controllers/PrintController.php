@@ -27,9 +27,9 @@ class PrintController extends Controller
         Gate::authorize('view', $case);
         $user = $request->user();
         abort_unless($user->hasPermission(Permission::ViewFinancials) && ($user->hasPermission(Permission::ViewAllFinancials) || $case->exam_date->isToday()), 403);
-        $case->load(['patient', 'doctor.user', 'branch', 'examType', 'payments.collector']);
+        $case->load(['patient', 'doctor.user']);
 
-        return view('print.receipt', ['case' => $case, 'paid' => (int) $case->payments->sum('amount_minor')]);
+        return view('print.receipt', ['case' => $case]);
     }
 
     public function accounts(Request $request): View
