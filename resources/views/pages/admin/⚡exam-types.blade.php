@@ -8,7 +8,7 @@ use Livewire\Component;
 new #[Title('أنواع الفحوصات')] class extends Component {
     #[Locked] public ?int $editingId=null;
     public string $name=''; public string $category='2D'; public int $sort=0; public bool $is_active=true; public string $price=''; public string $description=''; public array $branchPrices=[]; public array $branchEnabled=[];
-    public function boot(): void { abort_unless(auth()->user()->isAdmin(),403); }
+    public function boot(): void { abort_unless(auth()->user()->hasPermission(\App\Enums\Permission::ManageExamTypes),403); }
     #[Computed] public function examTypes() { return ExamType::ordered()->withCount('cases')->get(); }
     public function create(): void { $this->resetForm(); Flux::modal('exam-form')->show(); }
     public function edit(int $id): void { $type=ExamType::with('branches')->findOrFail($id); $this->resetForm(); $this->editingId=$id; $this->name=(string)$type->name; $this->category=(string)$type->category; $this->sort=(int)$type->sort; $this->is_active=(bool)$type->is_active; $this->description=(string)$type->description; $this->price=Money::decimal($type->base_price_minor); foreach($type->branches as $branch){$this->branchPrices[$branch->id]=Money::decimal($branch->pivot->base_price_minor);$this->branchEnabled[$branch->id]=(bool)$branch->pivot->is_active;} Flux::modal('exam-form')->show(); }

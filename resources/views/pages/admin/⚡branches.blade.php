@@ -7,7 +7,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('الفروع')] class extends Component {
-    public function boot(): void { abort_unless(auth()->user()->isAdmin(),403); }
+    public function boot(): void { abort_unless(auth()->user()->hasPermission(\App\Enums\Permission::ManageBranches),403); }
 
     #[\Livewire\Attributes\Locked] public ?int $editingId = null;
 

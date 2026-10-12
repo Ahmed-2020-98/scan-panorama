@@ -3,7 +3,7 @@
         <div x-data class="space-y-3">
             <flux:input :value="$doctor->linkUrl()" readonly dir="ltr" aria-label="رابط حالات الطبيب" />
             <div class="flex flex-wrap gap-2">
-                <a href="{{ $doctor->linkWhatsappUrl() }}" wire:click="markSent('whatsapp')" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#128C7E] px-3 text-sm font-medium text-white hover:bg-[#0e6f63]"><x-whatsapp-icon class="size-4" />إرسال للطبيب واتساب</a>
+                <a href="{{ $doctor->linkWhatsappUrl() }}" wire:click="markSent('whatsapp')" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-3 text-sm font-medium text-white hover:bg-brand-700"><x-whatsapp-icon class="size-4" />إرسال للطبيب واتساب</a>
                 <flux:button icon="clipboard" x-on:click="navigator.clipboard.writeText(@js($doctor->linkUrl())).then(() => $wire.markSent('copy')).catch(() => alert('تعذر النسخ. انسخ الرابط من الحقل.'))">نسخ الرابط</flux:button>
                 <flux:button icon="eye" variant="ghost" :href="$doctor->linkUrl()" target="_blank">معاينة</flux:button>
             </div>

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\Permission;
 use App\Models\Branch;
 use App\Models\CaseFile;
 use App\Models\Doctor;
@@ -17,7 +18,7 @@ class RecordRecovery
 {
     public static function delete(User $actor, Model $record): void
     {
-        abort_unless($actor->isAdmin() && self::recoverable($record), 403);
+        abort_unless($actor->hasPermission(Permission::DeleteCase) && self::recoverable($record), 403);
         if ($record instanceof Branch) {
             abort_if($record->users()->exists(), 422, 'انقل مستخدمي هذا الفرع إلى فرع آخر قبل حذفه.');
         }
@@ -62,7 +63,7 @@ class RecordRecovery
 
     public static function restore(User $actor, Model $record): void
     {
-        abort_unless($actor->isAdmin() && self::recoverable($record), 403);
+        abort_unless($actor->hasPermission(Permission::DeleteCase) && self::recoverable($record), 403);
         if ($record instanceof CaseFile) {
             abort_unless(MedicalCase::withTrashed()->find($record->medical_case_id)?->deleted_at === null, 422, 'استرجع الحالة أولًا.');
         }

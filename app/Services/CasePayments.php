@@ -17,7 +17,7 @@ class CasePayments
     {
         Gate::forUser($actor)->authorize('view', $case);
         abort_unless($actor->hasPermission(Permission::ViewFinancials) && $actor->isStaff(), 403);
-        if (! $actor->isAdmin() && ! $case->exam_date->isToday()) {
+        if (! $actor->hasPermission(Permission::ViewAllFinancials) && ! $case->exam_date->isToday()) {
             abort(403);
         }
 
@@ -40,7 +40,7 @@ class CasePayments
 
     public static function refund(User $actor, Payment $payment, int $amountMinor, string $reason, string $requestId): Payment
     {
-        abort_unless($actor->isAdmin(), 403);
+        abort_unless($actor->hasPermission(Permission::ViewAllFinancials), 403);
 
         return DB::transaction(function () use ($actor, $payment, $amountMinor, $reason, $requestId) {
             $payment = Payment::whereKey($payment->id)->lockForUpdate()->firstOrFail();

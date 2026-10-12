@@ -36,6 +36,6 @@ class Payment extends Model
     /** @return BelongsTo<User, $this> */
     public function collector(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'collected_by');
+        return $this->belongsTo(User::class, 'collected_by')->withTrashed();
     }
 }

@@ -37,13 +37,14 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property int|null $branch_id
  * @property array<string, bool>|null $permission_overrides
  * @property string|null $font
+ * @property int|null $shift_rate_minor
  */
-#[Fillable(['name', 'email', 'phone', 'role', 'is_active', 'password', 'branch_id', 'permission_overrides', 'font'])]
+#[Fillable(['name', 'email', 'phone', 'role', 'is_active', 'password', 'branch_id', 'permission_overrides', 'font', 'shift_rate_minor'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable;
+    use HasFactory, \Illuminate\Database\Eloquent\SoftDeletes, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * Get the attributes that should be cast.
@@ -58,6 +59,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role' => Role::class,
             'is_active' => 'boolean',
+            'shift_rate_minor' => 'integer',
             'permission_overrides' => 'array',
         ];
     }
@@ -96,28 +98,22 @@ class User extends Authenticatable
         if (! $this->is_active) {
             return false;
         }
-        if ($permission === Permission::ViewFinancials && ! $this->isStaff()) {
-            return false;
-        }
         if ($this->isAdmin()) {
             return true;
         }
-        // Role boundaries remain hard constraints even with per-user grants.
-        if (in_array($permission, [Permission::ManageUsers, Permission::DeleteCase, Permission::ManageBranches, Permission::ManageExamTypes], true)) {
+        // Doctors and technicians are outside the center's operations: they only ever see and upload.
+        if (! $this->isStaff() && ! in_array($permission, [Permission::ViewCases, Permission::UploadFiles], true)) {
             return false;
         }
-        if (! $this->isStaff() && in_array($permission, [Permission::CreateCase, Permission::EditCase, Permission::ShareCase, Permission::ApplyDiscount, Permission::ManageBranches, Permission::ManageExamTypes, Permission::ManageVisits], true)) {
+        if ($permission === Permission::ApplyDiscount) {
             return false;
         }
         $override = ($this->permission_overrides ?? [])[$permission->value] ?? null;
         if (is_bool($override)) {
             return $override;
         }
-        $defaults = $this->isStaff()
-            ? ['view_cases', 'create_case', 'edit_case', 'upload_files', 'share_case', 'view_financials']
-            : ['view_cases', 'upload_files'];
 
-        return in_array($permission->value, $defaults, true);
+        return in_array($permission->value, $this->role->defaultPermissions(), true);
     }
 
     public function isStaff(): bool

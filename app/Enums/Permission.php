@@ -16,17 +16,39 @@ enum Permission: string
     case ManageVisits = 'manage_visits';
     case ManageBranches = 'manage_branches';
     case ManageExamTypes = 'manage_exam_types';
+    case ManageDoctors = 'manage_doctors';
+    case ViewAllFinancials = 'view_all_financials';
+    case ManageExpenses = 'manage_expenses';
+    case SendCampaigns = 'send_campaigns';
+    case ViewActivity = 'view_activity';
+    case ManageSettings = 'manage_settings';
+
+    /**
+     * Permissions an admin can grant to a user (discounts were retired).
+     *
+     * @return list<self>
+     */
+    public static function grantable(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $p) => $p !== self::ApplyDiscount));
+    }
 
     public function label(): string
     {
         return match ($this) {
             self::ViewCases => 'عرض الحالات', self::CreateCase => 'إنشاء حالة',
-            self::EditCase => 'تعديل الحالة', self::DeleteCase => 'حذف الحالة والملفات',
+            self::EditCase => 'تعديل الحالة', self::DeleteCase => 'الحذف والمحذوفات',
             self::UploadFiles => 'رفع الملفات', self::ShareCase => 'مشاركة الحالة',
-            self::ViewFinancials => 'حسابات اليوم للاستقبال / جميع الحسابات للمدير',
+            self::ViewFinancials => 'الحسابات (اليوم)',
             self::ApplyDiscount => 'تطبيق الخصومات', self::ManageUsers => 'إدارة المستخدمين',
             self::ManageVisits => 'إدارة الزيارات', self::ManageBranches => 'إدارة الفروع',
-            self::ManageExamTypes => 'إدارة أنواع الفحوصات',
+            self::ManageExamTypes => 'إدارة أنواع الفحوصات والأسعار',
+            self::ManageDoctors => 'إدارة الأطباء وروابطهم',
+            self::ViewAllFinancials => 'الحسابات لكل الفترات والفروع ورد المبالغ',
+            self::ManageExpenses => 'المصروفات والرواتب',
+            self::SendCampaigns => 'رسائل العروض للمرضى والأطباء',
+            self::ViewActivity => 'سجل النشاط',
+            self::ManageSettings => 'إعدادات المركز',
         };
     }
 }

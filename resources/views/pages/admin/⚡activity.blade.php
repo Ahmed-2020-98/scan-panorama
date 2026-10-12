@@ -9,7 +9,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 new #[Title('سجل النشاط')] class extends Component {
-    public function boot(): void { abort_unless(auth()->user()->isAdmin(),403); }
+    public function boot(): void { abort_unless(auth()->user()->hasPermission(\App\Enums\Permission::ViewActivity),403); }
     use WithPagination;
 
     #[Url(except: '')]

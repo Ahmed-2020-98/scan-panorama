@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Enums\Permission;
 use App\Models\Doctor;
 use App\Support\ActivityLogger;
 use Flux\Flux;
@@ -17,7 +18,7 @@ class DoctorLinkPanel extends Component
 
     public function boot(): void
     {
-        abort_unless(auth()->user()?->isAdmin(), 403);
+        abort_unless(auth()->user()?->hasPermission(Permission::ManageDoctors), 403);
     }
 
     public function create(): void

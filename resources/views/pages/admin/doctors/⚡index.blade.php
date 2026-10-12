@@ -7,7 +7,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 
 new #[Title('الأطباء')] class extends Component {
-    public function boot(): void { abort_unless(auth()->user()->isAdmin(),403); }
+    public function boot(): void { abort_unless(auth()->user()->hasPermission(\App\Enums\Permission::ManageDoctors),403); }
     #[Url(as: 'q', except: '')]
     public string $search = '';
 

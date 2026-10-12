@@ -27,6 +27,8 @@
                         <flux:sidebar.item icon="folder-open" :href="route('cases.index')" :current="request()->routeIs('cases.*', 'patients.*')" wire:navigate>
                             المرضى والحالات
                         </flux:sidebar.item>
+                        @php($unread = $user->unreadNotifications()->count())
+                        <flux:sidebar.item icon="bell" :href="route('notifications.index')" :current="request()->routeIs('notifications.*')" :badge="$unread ?: null" badge-color="red" wire:navigate>التنبيهات</flux:sidebar.item>
                     </flux:sidebar.group>
 
                     @if($user->hasPermission(\App\Enums\Permission::ViewFinancials))
@@ -35,28 +37,32 @@
                     @if($user->hasPermission(\App\Enums\Permission::ManageVisits))
                         <flux:sidebar.item icon="calendar-days" :href="route('visits.index')" :current="request()->routeIs('visits.*')" wire:navigate>زيارات الأطباء</flux:sidebar.item>
                     @endif
-                    @if ($user->isAdmin())
+                    @php($P = \App\Enums\Permission::class)
+                    @if($user->hasPermission($P::ManageExpenses))
+                        <flux:sidebar.item icon="receipt-percent" :href="route('expenses.index')" :current="request()->routeIs('expenses.*')" wire:navigate>المصروفات والرواتب</flux:sidebar.item>
+                    @endif
+                    @if($user->hasPermission($P::SendCampaigns))
+                        <flux:sidebar.item icon="megaphone" :href="route('campaigns.index')" :current="request()->routeIs('campaigns.*')" wire:navigate>رسائل العروض</flux:sidebar.item>
+                    @endif
+                    @php($manage = collect([
+                        [$P::ManageDoctors, 'academic-cap', 'doctors.index', 'doctors.*', 'الأطباء'],
+                        [$P::ManageBranches, 'building-office-2', 'branches.index', 'branches.*', 'الفروع'],
+                        [$P::ManageExamTypes, 'queue-list', 'exam-types.index', 'exam-types.*', 'أنواع الفحوصات'],
+                        [$P::ManageUsers, 'identification', 'users.index', 'users.*', 'المستخدمون والصلاحيات'],
+                        [$P::ViewActivity, 'clock', 'activity.index', 'activity.*', 'سجل النشاط'],
+                        [$P::ManageSettings, 'cog-6-tooth', 'center-settings', 'center-settings', 'إعدادات المركز'],
+                    ])->filter(fn ($item) => $user->hasPermission($item[0])))
+                    @if($manage->isNotEmpty() || $user->isAdmin() || $user->hasPermission($P::DeleteCase))
                         <flux:sidebar.group heading="الإدارة" class="grid">
-                            <flux:sidebar.item icon="academic-cap" :href="route('doctors.index')" :current="request()->routeIs('doctors.*')" wire:navigate>
-                                الأطباء
-                            </flux:sidebar.item>
-                            <flux:sidebar.item icon="building-office-2" :href="route('branches.index')" :current="request()->routeIs('branches.*')" wire:navigate>
-                                الفروع
-                            </flux:sidebar.item>
-                            <flux:sidebar.item icon="queue-list" :href="route('exam-types.index')" :current="request()->routeIs('exam-types.*')" wire:navigate>
-                                أنواع الفحوصات
-                            </flux:sidebar.item>
-                            <flux:sidebar.item icon="identification" :href="route('users.index')" :current="request()->routeIs('users.*')" wire:navigate>
-                                المستخدمون والصلاحيات
-                            </flux:sidebar.item>
-                            <flux:sidebar.item icon="clock" :href="route('activity.index')" :current="request()->routeIs('activity.*')" wire:navigate>
-                                سجل النشاط
-                            </flux:sidebar.item>
-                            <flux:sidebar.item icon="cog-6-tooth" :href="route('center-settings')" :current="request()->routeIs('center-settings')" wire:navigate>
-                                إعدادات المركز
-                            </flux:sidebar.item>
-                            <flux:sidebar.item icon="cloud" :href="route('drive.settings')" :current="request()->routeIs('drive.*')" wire:navigate>Google Drive والملفات</flux:sidebar.item>
-                            <flux:sidebar.item icon="arrow-path" :href="route('recycle-bin')" :current="request()->routeIs('recycle-bin')" wire:navigate>المحذوفات</flux:sidebar.item>
+                            @foreach($manage as [$perm, $icon, $route, $pattern, $label])
+                                <flux:sidebar.item :icon="$icon" :href="route($route)" :current="request()->routeIs($pattern)" wire:navigate>{{ $label }}</flux:sidebar.item>
+                            @endforeach
+                            @if($user->isAdmin())
+                                <flux:sidebar.item icon="cloud" :href="route('drive.settings')" :current="request()->routeIs('drive.*')" wire:navigate>Google Drive والملفات</flux:sidebar.item>
+                            @endif
+                            @if($user->hasPermission($P::DeleteCase))
+                                <flux:sidebar.item icon="arrow-path" :href="route('recycle-bin')" :current="request()->routeIs('recycle-bin')" wire:navigate>المحذوفات</flux:sidebar.item>
+                            @endif
                         </flux:sidebar.group>
                     @endif
                 </flux:sidebar.nav>

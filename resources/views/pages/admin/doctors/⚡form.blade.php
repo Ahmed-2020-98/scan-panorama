@@ -12,7 +12,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('بيانات الطبيب')] class extends Component {
-    public function boot(): void { abort_unless(auth()->user()->isAdmin(),403); }
+    public function boot(): void { abort_unless(auth()->user()->hasPermission(\App\Enums\Permission::ManageDoctors),403); }
     public const TITLES = ['د.', 'أ.د.', 'أ.م.د.'];
 
     public ?Doctor $record = null;
@@ -40,6 +40,12 @@ new #[Title('بيانات الطبيب')] class extends Component {
 
     public string $notes = '';
 
+    public string $clinic_address = '';
+
+    public string $location_url = '';
+
+    public string $working_hours = '';
+
     public function mount(?Doctor $doctor = null): void
     {
         if ($doctor?->exists) {
@@ -55,6 +61,9 @@ new #[Title('بيانات الطبيب')] class extends Component {
                 'is_active' => $doctor->user->is_active,
                 'branch_ids' => $doctor->branches->pluck('id')->map(fn ($id) => (string) $id)->all(),
                 'notes' => (string) $doctor->notes,
+                'clinic_address' => (string) $doctor->clinic_address,
+                'location_url' => (string) $doctor->location_url,
+                'working_hours' => (string) $doctor->working_hours,
             ]);
         }
     }
@@ -76,7 +85,10 @@ new #[Title('بيانات الطبيب')] class extends Component {
             'branch_ids' => ['array', 'min:1'],
             'branch_ids.*' => [Rule::exists('branches', 'id')],
             'notes' => ['nullable', 'string', 'max:2000'],
-        ], ['branch_ids.min' => 'اختر فرعًا واحدًا على الأقل.']);
+            'clinic_address' => ['nullable', 'string', 'max:500'],
+            'location_url' => ['nullable', 'url:https', 'max:1000'],
+            'working_hours' => ['nullable', 'string', 'max:500'],
+        ], ['branch_ids.min' => 'اختر فرعًا واحدًا على الأقل.', 'location_url.url' => 'الصق رابط الموقع من خرائط Google (يبدأ بـ https).']);
 
         DB::transaction(function () use ($validated) {
             $userData = [
@@ -97,6 +109,9 @@ new #[Title('بيانات الطبيب')] class extends Component {
                 'specialty' => $validated['specialty'] ?: null,
                 'whatsapp' => $validated['whatsapp'] ?: null,
                 'notes' => $validated['notes'] ?: null,
+                'clinic_address' => trim((string) $validated['clinic_address']) ?: null,
+                'location_url' => $validated['location_url'] ?: null,
+                'working_hours' => trim((string) $validated['working_hours']) ?: null,
             ];
 
             if ($this->record) {
@@ -145,6 +160,19 @@ new #[Title('بيانات الطبيب')] class extends Component {
                     @endforeach
                 </div>
             </flux:checkbox.group>
+        </x-panel>
+
+        <x-panel title="العيادة" icon="map-pin">
+            <div class="grid gap-4 sm:grid-cols-2">
+                <flux:textarea wire:model="clinic_address" label="عنوان العيادة" rows="2" class="sm:col-span-2" placeholder="المدينة، الشارع، رقم العمارة والدور" />
+                <div class="sm:col-span-2">
+                    <flux:input wire:model="location_url" label="اللوكيشن (رابط خرائط Google)" type="url" dir="ltr" placeholder="https://maps.app.goo.gl/..." description="افتح العيادة على خرائط Google ← مشاركة ← نسخ الرابط، والصقه هنا" />
+                    @if ($location_url && str_starts_with($location_url, 'https://'))
+                        <a href="{{ $location_url }}" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-sm text-brand-700 underline"><flux:icon.map-pin variant="micro" /> فتح الموقع على الخريطة</a>
+                    @endif
+                </div>
+                <flux:textarea wire:model="working_hours" label="مواعيد العيادة" rows="2" class="sm:col-span-2" placeholder="السبت إلى الخميس من 5 م إلى 10 م — الجمعة إجازة" />
+            </div>
         </x-panel>
 
         <x-panel title="بيانات الدخول والتواصل" icon="key">

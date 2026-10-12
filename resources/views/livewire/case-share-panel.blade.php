@@ -3,7 +3,7 @@
         <flux:input :value="$case->shareUrl()" label="رابط الحالة" readonly dir="ltr" />
         <div class="mt-3 flex flex-wrap gap-2" x-data>
             <flux:button icon="clipboard" x-on:click="navigator.clipboard.writeText(@js($case->shareUrl())).then(() => $wire.markCopied()).catch(() => alert('تعذر النسخ. انسخ الرابط من الحقل.'))">نسخ الرابط</flux:button>
-            <a href="{{ $case->whatsappUrl() }}" wire:click="markWhatsapp" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm font-medium text-brand-700"><x-whatsapp-icon class="size-4" />واتساب الطبيب</a>
+            <a href="{{ $case->whatsappUrl() }}" wire:click="markWhatsapp" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-3 text-sm font-medium text-white shadow-xs transition hover:bg-brand-700"><x-whatsapp-icon class="size-4 text-phosphor" />واتساب الطبيب</a>
             <flux:button :href="$case->shareUrl()" target="_blank" icon="eye">معاينة</flux:button>
         </div>
         <div class="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3" x-data>

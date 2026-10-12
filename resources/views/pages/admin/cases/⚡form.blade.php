@@ -14,6 +14,7 @@ new #[Title('بيانات الحالة')] class extends Component {
     public string $patientSearch = '';
     public array $newPatient = ['name'=>'','phone'=>'','gender'=>'','birth_year'=>'','age'=>''];
     public string $doctor_id = '';
+    public string $patientPhone = '';
     public string $technician_id = '';
     public string $branch_id = '';
     public string $exam_type_id = '';
@@ -27,6 +28,7 @@ new #[Title('بيانات الحالة')] class extends Component {
         if ($case?->exists) {
             $this->medicalCase = $case;
             $this->patient_id = $case->patient_id;
+            $this->patientPhone = (string) $case->patient?->phone;
             foreach (['doctor_id','technician_id','branch_id','exam_type_id','case_code','notes_for_doctor','notes_internal'] as $key) { $this->{$key} = (string) $case->{$key}; }
             $this->exam_date = $case->exam_date->toDateString();
             $this->base_price = Money::decimal($case->final_price_minor ?? $case->base_price_minor);
@@ -50,7 +52,7 @@ new #[Title('بيانات الحالة')] class extends Component {
     }
     public function selectPatient(int $id): void {
         $patient = AccessScope::patients(auth()->user())->findOrFail($id);
-        $this->patient_id = $patient->id; $this->patientMode = 'existing'; $this->patientSearch = ''; $this->resetValidation();
+        $this->patient_id = $patient->id; $this->patientMode = 'existing'; $this->patientSearch = ''; $this->patientPhone = (string) $patient->phone; $this->resetValidation();
     }
     public function clearPatient(): void { $this->patient_id = null; $this->patientMode = 'new'; }
     public function updatedNewPatient($value, string $key): void {
@@ -74,7 +76,7 @@ new #[Title('بيانات الحالة')] class extends Component {
     }
     public function save(): void {
         $this->authorize($this->isEditing() ? 'update' : 'create', $this->medicalCase ?? MedicalCase::class);
-        $this->validate(['newPatient.age'=>['nullable','integer','min:0','max:130']]);
+        $this->validate(['newPatient.age'=>['nullable','integer','min:0','max:130'],'patientPhone'=>['nullable','regex:/^\+?[\d\s-]{8,20}$/'],'newPatient.phone'=>['nullable','regex:/^\+?[\d\s-]{8,20}$/']],['patientPhone.regex'=>'رقم الموبايل غير صحيح.','newPatient.phone.regex'=>'رقم الموبايل غير صحيح.']);
         $case = DB::transaction(function () {
             $case = CaseRegistration::save(auth()->user(), [
                 'patient_id'=>$this->patientMode === 'existing' || $this->isEditing() ? $this->patient_id : null,
@@ -86,6 +88,10 @@ new #[Title('بيانات الحالة')] class extends Component {
             if ($this->base_price !== '' && Money::minor($this->base_price) !== $case->final_price_minor) {
                 $price = Money::minor($this->base_price);
                 CasePricing::apply(auth()->user(),$case,$price,$price,null);
+            }
+            if ($this->selectedPatient && trim($this->patientPhone) !== (string) $this->selectedPatient->phone) {
+                $this->authorize('update', $this->selectedPatient);
+                $this->selectedPatient->update(['phone' => preg_replace('/[\s-]+/', '', trim($this->patientPhone)) ?: null]);
             }
             return $case;
         });
@@ -103,6 +109,7 @@ new #[Title('بيانات الحالة')] class extends Component {
                     <div><div class="font-semibold">{{ $this->selectedPatient->name }}</div><div class="mt-1 text-sm text-zinc-600">{{ $this->selectedPatient->file_number }} · {{ $this->selectedPatient->cases_count }} حالة سابقة</div><a class="text-sm text-brand-700 underline" href="{{ route('patients.show',$this->selectedPatient) }}" target="_blank">فتح ملف المريض</a></div>
                     @unless ($this->isEditing())<flux:button variant="ghost" wire:click="clearPatient">تغيير المريض</flux:button>@endunless
                 </div>
+                <div class="mt-4 max-w-sm"><flux:input wire:model="patientPhone" label="رقم موبايل المريض" type="tel" dir="ltr" placeholder="01xxxxxxxxx" icon="phone" description="يُستخدم لإرسال النتيجة والعروض على واتساب" /></div>
             @else
                 <flux:input wire:model.live.debounce.300ms="patientSearch" label="البحث عن مريض مسجل" icon="magnifying-glass" placeholder="الاسم أو الهاتف أو رقم الملف" autocomplete="off" />
                 @if (mb_strlen(trim($patientSearch)) >= 2)
@@ -116,7 +123,7 @@ new #[Title('بيانات الحالة')] class extends Component {
                     <div class="sm:col-span-2"><flux:input wire:model="newPatient.name" label="اسم المريض (اختياري)" /></div>
                     <div class="grid grid-cols-2 gap-4 sm:col-span-2"><flux:input wire:model.live.debounce.300ms="newPatient.age" label="العمر التقريبي" type="number" min="0" max="130" inputmode="numeric" />
                     <flux:input wire:model.live.debounce.300ms="newPatient.birth_year" label="سنة الميلاد" type="number" :max="now()->year" :min="now()->year-130" inputmode="numeric" /></div>
-                    <flux:input wire:model="newPatient.phone" label="رقم الهاتف (اختياري)" type="tel" dir="ltr" />
+                    <flux:input wire:model="newPatient.phone" label="رقم موبايل المريض" type="tel" dir="ltr" placeholder="01xxxxxxxxx" icon="phone" description="لإرسال النتيجة والعروض على واتساب" />
                     <flux:select wire:model="newPatient.gender" label="النوع (اختياري)"><flux:select.option value="">لم يحدد</flux:select.option>@foreach(Patient::GENDERS as $key=>$label)<flux:select.option :value="$key">{{ $label }}</flux:select.option>@endforeach</flux:select>
                 </div>
             @endif
@@ -126,7 +133,7 @@ new #[Title('بيانات الحالة')] class extends Component {
                 <flux:select wire:model.live="branch_id" label="الفرع" :disabled="! auth()->user()->isAdmin()">@foreach(AccessScope::branches(auth()->user())->active()->get() as $branch)<flux:select.option :value="(string)$branch->id">{{ $branch->name }}</flux:select.option>@endforeach</flux:select>
                 <flux:input wire:model="exam_date" label="تاريخ الفحص" type="date" />
                 <flux:select wire:model.live="exam_type_id" label="نوع الفحص"><flux:select.option value="">يحدد لاحقًا</flux:select.option>@foreach($this->exams as $exam)<flux:select.option :value="(string)$exam->id">{{ $exam->name }}</flux:select.option>@endforeach</flux:select>
-                <flux:select wire:model.live="doctor_id" label="الطبيب"><flux:select.option value="">يحدد لاحقًا</flux:select.option>@foreach($this->doctors as $doctor)<flux:select.option :value="(string)$doctor->id">{{ $doctor->display_name }}</flux:select.option>@endforeach</flux:select>
+                <x-search-select model="doctor_id" label="الطبيب" placeholder="اكتب أول حرفين من اسم الطبيب أو الكود" wire:key="doctor-picker-{{ $branch_id }}" :options="$this->doctors->map(fn ($d) => [$d->id, $d->display_name, $d->code])" />
                 <flux:select wire:model="technician_id" label="الفني المسؤول"><flux:select.option value="">يحدد لاحقًا</flux:select.option>@foreach(User::where('role','technician')->where('is_active',true)->where('branch_id',$branch_id)->get() as $technician)<flux:select.option :value="(string)$technician->id">{{ $technician->name }}</flux:select.option>@endforeach</flux:select>
                 @if($this->isEditing() && auth()->user()->isAdmin())<flux:input wire:model="case_code" label="كود الحالة" dir="ltr" />@endif
             </div>

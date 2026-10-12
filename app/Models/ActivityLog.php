@@ -30,7 +30,7 @@ class ActivityLog extends Model
         'patient.created' => 'إضافة مريض', 'patient.updated' => 'تعديل مريض', 'patient.deleted' => 'حذف مريض', 'patient.recovered' => 'استرجاع مريض',
         'case.recovered' => 'استرجاع حالة', 'file.recovered' => 'استرجاع ملف', 'case.clinical_updated' => 'تحديث بيانات الفحص',
         'price.updated' => 'تعديل السعر', 'price.discounted' => 'تطبيق خصم', 'payment.received' => 'تسجيل تحصيل', 'payment.refunded' => 'رد مبلغ',
-        'user.created' => 'إنشاء مستخدم', 'user.updated' => 'تعديل مستخدم وصلاحياته',
+        'user.created' => 'إنشاء مستخدم', 'user.deleted' => 'حذف مستخدم', 'campaign.created' => 'تجهيز رسائل عروض', 'contacts.exported' => 'تنزيل أرقام جهات الاتصال', 'booklet.requested' => 'طلب دفتر تحويل', 'booklet.delivered' => 'تسليم دفتر تحويل', 'expense.saved' => 'تسجيل مصروف', 'expense.deleted' => 'حذف مصروف', 'user.updated' => 'تعديل مستخدم وصلاحياته',
         'visit.saved' => 'حفظ زيارة طبيب', 'visit.deleted' => 'حذف زيارة طبيب', 'share.files_updated' => 'تحديث ملفات الرابط',
         'exam.updated' => 'تعديل الفحص والأسعار', 'exam.deleted' => 'حذف نوع فحص', 'branch.created' => 'إنشاء فرع', 'branch.updated' => 'تعديل فرع', 'branch.deleted' => 'حذف فرع',
         'doctor.created' => 'إضافة طبيب', 'doctor.updated' => 'تعديل طبيب', 'doctor.deleted' => 'حذف طبيب',
@@ -62,7 +62,7 @@ class ActivityLog extends Model
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withTrashed();
     }
 
     /**

@@ -22,8 +22,10 @@ class FinancialReport
         $from = ($filters['from'] ?? null) ?: today()->toDateString();
         $to = ($filters['to'] ?? null) ?: $from;
         Validator::make(['from' => $from, 'to' => $to], ['from' => ['required', 'date_format:Y-m-d'], 'to' => ['required', 'date_format:Y-m-d', 'after_or_equal:from']])->validate();
-        if (! $actor->isAdmin()) {
+        if (! $actor->hasPermission(Permission::ViewAllFinancials)) {
             abort_unless($from === today()->toDateString() && $to === $from, 403);
+        }
+        if (! $actor->isAdmin()) {
             abort_if(! empty($filters['branch']) && ! in_array((int) $filters['branch'], AccessScope::branchIds($actor), true), 403);
         }
 

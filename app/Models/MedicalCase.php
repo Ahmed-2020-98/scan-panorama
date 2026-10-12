@@ -140,7 +140,7 @@ class MedicalCase extends Model
      */
     public function technician(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'technician_id');
+        return $this->belongsTo(User::class, 'technician_id')->withTrashed();
     }
 
     /** @return HasMany<Payment, $this> */
@@ -152,7 +152,7 @@ class MedicalCase extends Model
     /** @return BelongsTo<User, $this> */
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by')->withTrashed();
     }
 
     /**

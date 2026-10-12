@@ -21,6 +21,6 @@ class PatientPolicy
 
     public function delete(User $user, Patient $patient): bool
     {
-        return $user->isAdmin();
+        return $user->hasPermission(Permission::DeleteCase) && $this->view($user, $patient);
     }
 }

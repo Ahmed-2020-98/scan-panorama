@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +10,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @property int $id
+ * @property int $doctor_id
+ * @property int $branch_id
+ * @property int $responsible_user_id
+ * @property CarbonInterface|null $visited_at
+ * @property CarbonInterface|null $next_visit_at
+ * @property string|null $comment
+ * @property string|null $agreement
+ * @property string|null $notes
+ * @property-read Doctor|null $doctor
+ * @property-read Branch|null $branch
+ * @property-read User|null $responsible
+ */
 #[Fillable(['doctor_id', 'branch_id', 'responsible_user_id', 'visited_at', 'next_visit_at', 'comment', 'agreement', 'notes'])]
 class DoctorVisit extends Model
 {
@@ -34,7 +49,7 @@ class DoctorVisit extends Model
     /** @return BelongsTo<User, $this> */
     public function responsible(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'responsible_user_id');
+        return $this->belongsTo(User::class, 'responsible_user_id')->withTrashed();
     }
 
     /** @param Builder<DoctorVisit> $query */

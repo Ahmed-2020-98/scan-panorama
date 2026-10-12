@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\Permission;
 use App\Models\CaseFile;
 use App\Models\User;
 
@@ -14,6 +15,6 @@ class CaseFilePolicy
 
     public function delete(User $user, CaseFile $file): bool
     {
-        return $user->isAdmin();
+        return $user->hasPermission(Permission::DeleteCase) && $file->medicalCase !== null && $user->can('view', $file->medicalCase);
     }
 }

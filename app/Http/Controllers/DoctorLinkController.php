@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BookletRequest;
 use App\Models\CaseFile;
 use App\Models\Doctor;
 use App\Models\MedicalCase;
+use App\Services\CenterAlerts;
 use App\Support\ActivityLogger;
 use App\Support\FileResponder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Symfony\Component\HttpFoundation\Response as FileResponse;
@@ -74,6 +77,24 @@ class DoctorLinkController extends Controller
         }
 
         return FileResponder::respond($file, $mode);
+    }
+
+    /** The doctor asks for a new referral booklet; the admin and marketing get notified. */
+    public function requestBooklet(Request $request, string $token): RedirectResponse
+    {
+        $doctor = $this->doctor($token);
+        if (! $doctor) {
+            abort(404);
+        }
+        $data = $request->validate(['quantity' => ['required', 'integer', 'min:1', 'max:20'], 'note' => ['nullable', 'string', 'max:500']]);
+        $open = BookletRequest::where('doctor_id', $doctor->id)->where('status', 'requested')->first();
+        if (! $open) {
+            $open = BookletRequest::create(['doctor_id' => $doctor->id, 'branch_id' => $doctor->branches()->value('branches.id'), 'quantity' => $data['quantity'], 'note' => $data['note'] ?? null, 'source' => 'doctor']);
+            ActivityLogger::log('booklet.requested', $open, ['doctor' => $doctor->display_name, 'quantity' => $open->quantity]);
+            CenterAlerts::broadcast('booklet-'.$open->id, 'booklet', 'طلب دفتر تحويل: '.$doctor->display_name, $open->quantity.' دفتر'.($open->note ? ' — '.$open->note : '').'.', route('visits.index'), $open->branch_id);
+        }
+
+        return redirect()->route('doctor-link.index', $token)->with('booklet_requested', true);
     }
 
     private function doctor(string $token): ?Doctor

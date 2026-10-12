@@ -17,6 +17,24 @@
         <p class="mt-1 text-sm text-zinc-500"><span class="ltr-nums">{{ $cases->count() }}</span> حالة @if ($search !== '') مطابقة للبحث @endif</p>
     </div>
 
+    @php($openBooklet = \App\Models\BookletRequest::where('doctor_id', $doctor->id)->where('status', 'requested')->first())
+    <div class="mb-5 rounded-xl border border-zinc-200 bg-white p-4" x-data="{ open: false }">
+        @if (session('booklet_requested') || $openBooklet)
+            <div class="flex items-center gap-3 text-sm text-green-800"><flux:icon.check-circle class="size-5 text-green-600" /> تم استلام طلب دفتر التحويل{{ $openBooklet ? ' ('.$openBooklet->quantity.' دفتر)' : '' }}، وسيتواصل معك المركز قريبًا.</div>
+        @else
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div><div class="font-medium">دفتر التحويل خلص؟</div><div class="text-sm text-zinc-500">اطلب دفتر جديد وهيوصلك من المركز.</div></div>
+                <flux:button icon="book-open" variant="primary" x-on:click="open = ! open">طلب دفتر</flux:button>
+            </div>
+            <form method="POST" action="{{ route('doctor-link.booklet', $token) }}" x-show="open" x-cloak class="mt-4 grid gap-3 sm:grid-cols-[8rem_1fr_auto] sm:items-end">
+                @csrf
+                <flux:input name="quantity" type="number" min="1" max="20" value="1" label="عدد الدفاتر" />
+                <flux:input name="note" label="ملاحظة (اختياري)" placeholder="مثلاً: العنوان أو وقت مناسب للتسليم" />
+                <flux:button type="submit" variant="primary">إرسال الطلب</flux:button>
+            </form>
+        @endif
+    </div>
+
     <x-panel :padded="false">
         <form method="GET" class="flex flex-wrap items-center gap-2 border-b border-zinc-100 p-4">
             <flux:input name="q" :value="$search" icon="magnifying-glass" placeholder="ابحث باسم المريض أو الكود أو الهاتف" class="max-w-md flex-1" />

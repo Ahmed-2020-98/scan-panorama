@@ -34,7 +34,7 @@ class CaseFinancePanel extends Component
     private function checkAccess(): void
     {
         $this->authorize('view', $this->medicalCase);
-        abort_unless(auth()->user()->hasPermission(Permission::ViewFinancials) && (auth()->user()->isAdmin() || $this->medicalCase->exam_date->isToday()), 403);
+        abort_unless(auth()->user()->hasPermission(Permission::ViewFinancials) && (auth()->user()->hasPermission(Permission::ViewAllFinancials) || $this->medicalCase->exam_date->isToday()), 403);
     }
 
     public function receive(): void

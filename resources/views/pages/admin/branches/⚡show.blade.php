@@ -4,7 +4,7 @@ use Livewire\Attributes\{Locked,Title};
 use Livewire\Component;
 new #[Title('بيانات الفرع')] class extends Component {
     #[Locked] public Branch $branch;
-    public function boot(): void { abort_unless(auth()->user()->isAdmin(),403); }
+    public function boot(): void { abort_unless(auth()->user()->hasPermission(\App\Enums\Permission::ManageBranches),403); }
     public function mount(Branch $branch): void { $this->branch=$branch; }
 }; ?>
 <div class="mx-auto w-full max-w-6xl space-y-5"><x-page-header :title="$branch->name" :subtitle="$branch->address" :back="route('branches.index')" /><div class="grid gap-3 sm:grid-cols-3"><x-stat-card label="الحالات" :value="$branch->cases()->count()" icon="folder-open" :href="route('cases.index',['branch'=>$branch->id])" /><x-stat-card label="المرضى" :value="$branch->patients()->count()" icon="users" /><x-stat-card label="الفريق" :value="$branch->users()->count()" icon="identification" /></div>

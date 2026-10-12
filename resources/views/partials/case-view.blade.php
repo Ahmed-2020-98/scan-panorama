@@ -5,6 +5,7 @@
 --}}
 @php($forPatient = $forPatient ?? false)
 @php($grouped = $case->files->groupBy(fn ($file) => $file->type->value))
+@php($sliderImages = $case->files->filter(fn ($f) => $f->isImage())->values())
 
 <div class="space-y-6">
     <section class="film dark overflow-hidden rounded-2xl px-6 py-7 shadow-[0_24px_60px_-36px_rgb(4_11_25/0.8)] sm:px-8">
@@ -57,7 +58,7 @@
                 @foreach ($grouped[$type->value] as $file)
                     <div class="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition hover:border-brand-300 hover:shadow-[0_18px_40px_-26px_rgb(8_30_70/0.55)]">
                         @if ($file->isImage())
-                            <a href="{{ $fileUrl($file, 'view') }}" target="_blank" class="film crop-marks relative block aspect-video overflow-hidden">
+                            <a href="{{ $fileUrl($file, 'view') }}" target="_blank" x-data x-on:click.prevent="$dispatch('open-slider-case-images', { index: {{ (int) $sliderImages->search(fn ($f) => $f->id === $file->id) }} })" class="film crop-marks relative block aspect-video cursor-zoom-in overflow-hidden">
                                 <img src="{{ $fileUrl($file, 'view') }}" alt="{{ $file->original_name }}" loading="lazy" class="relative size-full object-contain p-3 transition duration-500 group-hover:scale-[1.03]">
                                 <span class="ltr-nums absolute top-2.5 left-3 rounded border border-marker/70 px-1 text-[0.65rem] leading-4 text-marker">R</span>
                             </a>
@@ -92,4 +93,6 @@
             @endif
         </x-panel>
     @endforeach
+
+    <x-image-slider :images="$sliderImages->map(fn ($f) => [$fileUrl($f, 'view'), $f->original_name, $fileUrl($f, 'download')])->all()" />
 </div>

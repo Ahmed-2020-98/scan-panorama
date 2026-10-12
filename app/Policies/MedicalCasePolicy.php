@@ -46,6 +46,6 @@ class MedicalCasePolicy
 
     public function delete(User $user, MedicalCase $case): bool
     {
-        return $user->isAdmin() && $this->view($user, $case);
+        return $user->hasPermission(Permission::DeleteCase) && $this->view($user, $case);
     }
 }

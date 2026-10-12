@@ -11,7 +11,7 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 
 new #[Title('إعدادات المركز')] class extends Component {
-    public function boot(): void { abort_unless(auth()->user()->isAdmin(),403); }
+    public function boot(): void { abort_unless(auth()->user()->hasPermission(\App\Enums\Permission::ManageSettings),403); }
     use WithFileUploads;
 
     public string $currency = '';

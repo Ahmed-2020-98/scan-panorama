@@ -141,10 +141,15 @@ new class extends Component {
 
                 <div class="dark flex flex-wrap items-center gap-2">
                     <flux:button icon="pencil-square" :href="route('cases.edit', $case)" wire:navigate>تعديل</flux:button>
+                    <flux:button icon="printer" :href="route('cases.print', $case)" target="_blank" aria-label="طباعة" />
                     <flux:dropdown align="end">
                         <flux:button icon="ellipsis-horizontal" aria-label="المزيد" />
                         <flux:menu>
                             <flux:menu.item icon="document-duplicate" :href="route('cases.create', ['patient' => $case->patient_id, 'doctor' => $case->doctor_id])" wire:navigate>حالة جديدة لنفس المريض</flux:menu.item>
+                            <flux:menu.item icon="printer" :href="route('cases.print', $case)" target="_blank">طباعة الحالة</flux:menu.item>
+                            @if(auth()->user()->hasPermission(\App\Enums\Permission::ViewFinancials) && (auth()->user()->hasPermission(\App\Enums\Permission::ViewAllFinancials) || $case->exam_date->isToday()))
+                                <flux:menu.item icon="receipt-percent" :href="route('cases.receipt', $case)" target="_blank">طباعة إيصال</flux:menu.item>
+                            @endif
                             <flux:menu.item :icon="$case->archived_at ? 'archive-box-x-mark' : 'archive-box'" wire:click="toggleArchive">
                                 {{ $case->archived_at ? 'إلغاء الأرشفة' : 'أرشفة الحالة' }}
                             </flux:menu.item>
@@ -211,7 +216,7 @@ new class extends Component {
 
         <div class="space-y-6">
             @can('share',$case)<livewire:case-share-panel :medical-case="$case" :key="'case-share-'.$case->id" />@endcan
-            @if(auth()->user()->hasPermission(\App\Enums\Permission::ViewFinancials) && (auth()->user()->isAdmin() || $case->exam_date->isToday()))<livewire:case-finance-panel :medical-case="$case" :key="'case-finance-'.$case->id" />@endif
+            @if(auth()->user()->hasPermission(\App\Enums\Permission::ViewFinancials) && (auth()->user()->hasPermission(\App\Enums\Permission::ViewAllFinancials) || $case->exam_date->isToday()))<livewire:case-finance-panel :medical-case="$case" :key="'case-finance-'.$case->id" />@endif
             <x-panel title="متابعة الطبيب" icon="eye">
                 <dl class="space-y-3 text-sm">
                     <div class="flex justify-between gap-3">

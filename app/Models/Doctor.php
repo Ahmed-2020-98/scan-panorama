@@ -25,11 +25,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $deletion_batch_id
  * @property bool|null $user_was_active
  * @property string|null $link_token
+ * @property string|null $clinic_address
+ * @property string|null $location_url
+ * @property string|null $working_hours
  * @property CarbonInterface|null $deleted_at
  * @property-read User $user
  * @property-read string $display_name
  */
-#[Fillable(['user_id', 'code', 'title', 'whatsapp', 'specialty', 'notes'])]
+#[Fillable(['user_id', 'code', 'title', 'whatsapp', 'specialty', 'notes', 'clinic_address', 'location_url', 'working_hours'])]
 class Doctor extends Model
 {
     /** @use HasFactory<DoctorFactory> */

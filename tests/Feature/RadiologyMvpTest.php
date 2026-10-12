@@ -169,7 +169,10 @@ class RadiologyMvpTest extends TestCase
         $reception = User::factory()->reception()->create(['branch_id' => $this->branch->id]);
         $this->actingAs($reception);
         $this->get(route('accounts.index'))->assertOk();
-        $this->get(route('accounts.index', ['from' => today()->subDay()->toDateString()]))->assertForbidden();
+        // Reception is pinned to today: a past date in the URL is ignored, other periods are refused.
+        Livewire::withQueryParams(['from' => today()->subDay()->toDateString(), 'preset' => 'custom'])->test('pages::admin.accounts')
+            ->assertSet('from', today()->toDateString())->assertSet('to', today()->toDateString())
+            ->call('applyPreset', 'month')->assertForbidden();
         foreach ([Role::Doctor, Role::Technician] as $role) {
             $user = User::factory()->create(['role' => $role, 'branch_id' => $this->branch->id, 'permission_overrides' => ['view_financials' => true]]);
             $this->assertFalse($user->hasPermission(Permission::ViewFinancials));
