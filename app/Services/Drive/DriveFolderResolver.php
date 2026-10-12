@@ -12,6 +12,12 @@ class DriveFolderResolver
 {
     public function __construct(private DriveClient $client) {}
 
+    /** A resolver that builds folders inside a specific account. */
+    public function using(DriveConnection $connection): self
+    {
+        return new self($this->client->using($connection));
+    }
+
     public function folder(string $key, string $name, ?string $parent): string
     {
         return Cache::lock('drive-folder-'.hash('sha256', $key), 180)->block(15, function () use ($key, $name, $parent) {
@@ -31,7 +37,7 @@ class DriveFolderResolver
 
     public function caseFolder(MedicalCase $case, CaseFileType $type): string
     {
-        $connection = DriveConnection::firstOrFail();
+        $connection = $this->client->connection();
         $prefix = 'connection-'.$connection->id;
         $root = $connection->root_folder_id ?? $this->folder($prefix.'/root', 'Radiology Center', $connection->shared_drive_id);
         if (! $connection->root_folder_id) {

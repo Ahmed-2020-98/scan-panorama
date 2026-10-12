@@ -48,7 +48,7 @@ class CaseUploadController extends Controller
         if ($request->user()->isDoctor()) {
             abort_unless(in_array($type, [CaseFileType::Report, CaseFileType::Image], true), 403);
         }
-        if (config('radiology.upload_provider') === 'drive' && ! DriveConnection::exists()) {
+        if (config('radiology.upload_provider') === 'drive' && ! DriveConnection::connected()) {
             $this->fail('Google Drive غير متصل. يربط المدير حساب المركز من إعدادات الملفات أولًا.');
         }
         $extension = strtolower(pathinfo($data['file_name'], PATHINFO_EXTENSION));

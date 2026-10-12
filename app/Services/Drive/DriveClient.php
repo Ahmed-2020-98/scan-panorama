@@ -10,13 +10,28 @@ class DriveClient
 {
     private ?string $token = null;
 
+    private ?DriveConnection $connection = null;
+
+    /** A client bound to a specific account (defaults to the active one). */
+    public function using(DriveConnection $connection): self
+    {
+        $client = new self;
+        $client->connection = $connection;
+
+        return $client;
+    }
+
+    public function connection(): DriveConnection
+    {
+        return $this->connection ??= DriveConnection::activeOrFail();
+    }
+
     public function request(): PendingRequest
     {
         if (! $this->token) {
-            $connection = DriveConnection::firstOrFail();
             $response = Http::asForm()->timeout(30)->post('https://oauth2.googleapis.com/token', [
                 'client_id' => config('drive.client_id'), 'client_secret' => config('drive.client_secret'),
-                'refresh_token' => $connection->refresh_token, 'grant_type' => 'refresh_token',
+                'refresh_token' => $this->connection()->refresh_token, 'grant_type' => 'refresh_token',
             ]);
             if (! $response->successful() || ! $response->json('access_token')) {
                 throw new \RuntimeException('Drive authentication failed. Reconnect the center account.');

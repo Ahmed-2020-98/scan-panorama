@@ -26,8 +26,19 @@ class DriveCaseStorage
         if (! $file->provider_id) {
             $file->update(['provider_id' => $this->client->newId()]);
         }
-        $this->client->create(['id' => $file->provider_id, 'name' => $file->original_name, 'parents' => [$this->folders->caseFolder($case, $file->type)]]);
-        $response = $this->client->request()->withHeaders(['X-Upload-Content-Type' => $file->mime, 'X-Upload-Content-Length' => (string) $file->size])->patch('https://www.googleapis.com/upload/drive/v3/files/'.rawurlencode($file->provider_id).'?uploadType=resumable&supportsAllDrives=true', (object) []);
+        self::upload($this->client, $file->provider_id, $this->folders->caseFolder($case, $file->type), $file->original_name, $file->mime, $file->size, $path);
+        $staging = $file->staging_path;
+        $file->update(['storage_status' => 'ready', 'storage_error' => null, 'staging_path' => null]);
+        Storage::disk('local')->delete($staging);
+    }
+
+    /**
+     * Resumable upload of a local file under a pre-allocated Drive ID, verified by size and MD5.
+     */
+    public static function upload(DriveClient $client, string $fileId, string $parent, string $name, ?string $mime, int $size, string $path): void
+    {
+        $client->create(['id' => $fileId, 'name' => $name, 'parents' => [$parent]]);
+        $response = $client->request()->withHeaders(['X-Upload-Content-Type' => $mime, 'X-Upload-Content-Length' => (string) $size])->patch('https://www.googleapis.com/upload/drive/v3/files/'.rawurlencode($fileId).'?uploadType=resumable&supportsAllDrives=true', (object) []);
         $response->throw();
         $location = $response->header('Location');
         if (parse_url($location, PHP_URL_SCHEME) !== 'https' || parse_url($location, PHP_URL_HOST) !== 'www.googleapis.com') {
@@ -40,13 +51,13 @@ class DriveCaseStorage
         try {
             $offset = 0;
             $completed = false;
-            while ($offset < $file->size) {
+            while ($offset < $size) {
                 $body = fread($handle, max(256 * 1024, (int) config('drive.chunk_bytes')));
                 if ($body === false || $body === '') {
                     throw new \RuntimeException('Cannot read staged file.');
                 }
                 $end = $offset + strlen($body) - 1;
-                $part = $this->client->request()->withHeaders(['Content-Range' => "bytes {$offset}-{$end}/{$file->size}"])->withBody($body, $file->mime ?: 'application/octet-stream')->put($location);
+                $part = $client->request()->withHeaders(['Content-Range' => "bytes {$offset}-{$end}/{$size}"])->withBody($body, $mime ?: 'application/octet-stream')->put($location);
                 if ($part->status() !== 308) {
                     $part->throw();
                 }
@@ -66,13 +77,10 @@ class DriveCaseStorage
         } finally {
             fclose($handle);
         }
-        $metadata = $this->client->request()->get('https://www.googleapis.com/drive/v3/files/'.rawurlencode($file->provider_id), ['fields' => 'id,size,md5Checksum', 'supportsAllDrives' => 'true'])->throw()->json();
-        if ((int) ($metadata['size'] ?? -1) !== $file->size || ($metadata['md5Checksum'] ?? '') !== md5_file($path)) {
+        $metadata = $client->request()->get('https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId), ['fields' => 'id,size,md5Checksum', 'supportsAllDrives' => 'true'])->throw()->json();
+        if ((int) ($metadata['size'] ?? -1) !== $size || ($metadata['md5Checksum'] ?? '') !== md5_file($path)) {
             throw new \RuntimeException('Drive file checksum does not match.');
         }
-        $staging = $file->staging_path;
-        $file->update(['storage_status' => 'ready', 'storage_error' => null, 'staging_path' => null]);
-        Storage::disk('local')->delete($staging);
     }
 
     public function respond(CaseFile $file, string $mode): StreamedResponse

@@ -34,7 +34,7 @@ class ActivityLog extends Model
         'visit.saved' => 'حفظ زيارة طبيب', 'visit.deleted' => 'حذف زيارة طبيب', 'share.files_updated' => 'تحديث ملفات الرابط',
         'exam.updated' => 'تعديل الفحص والأسعار', 'exam.deleted' => 'حذف نوع فحص', 'branch.created' => 'إنشاء فرع', 'branch.updated' => 'تعديل فرع', 'branch.deleted' => 'حذف فرع',
         'doctor.created' => 'إضافة طبيب', 'doctor.updated' => 'تعديل طبيب', 'doctor.deleted' => 'حذف طبيب',
-        'drive.connected' => 'ربط Drive', 'drive.destination_updated' => 'تعديل وجهة Drive', 'file.drive_ready' => 'اكتمال نقل الملف إلى Drive', 'settings.updated' => 'تعديل إعدادات المركز',
+        'drive.connected' => 'ربط Drive', 'drive.migration_started' => 'بدء نقل الملفات لحساب Drive جديد', 'drive.migrated' => 'اكتمال نقل الملفات لحساب Drive الجديد', 'drive.migration_cancelled' => 'إلغاء نقل Drive', 'drive.destination_updated' => 'تعديل وجهة Drive', 'file.drive_ready' => 'اكتمال نقل الملف إلى Drive', 'settings.updated' => 'تعديل إعدادات المركز',
         'case.created' => 'إنشاء حالة',
         'case.updated' => 'تعديل حالة',
         'case.archived' => 'أرشفة حالة',
