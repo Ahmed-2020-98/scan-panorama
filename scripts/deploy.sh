@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 HOST="u300114289@82.29.182.140"
 PORT=65002
 KEY="$HOME/.ssh/id_ed25519_hostinger"
-DOMAIN="${DOMAIN:-clinic-ksa.online}"
+DOMAIN="${DOMAIN:-panoramascann.com}"
 REMOTE="domains/$DOMAIN/app"
 SSH=(ssh -i "$KEY" -p "$PORT" -o IdentitiesOnly=yes "$HOST")
 
