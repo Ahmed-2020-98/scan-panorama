@@ -30,6 +30,7 @@ class ImportSheetCasesTest extends TestCase
         ExamType::factory()->create(['name' => '3D CBCT - Quadrant']);
         $doctor = Doctor::factory()->create();
         $doctor->user->update(['name' => 'سامي فؤاد الريس']);
+        Doctor::factory()->create()->user->update(['name' => 'وليدالعشري']);
 
         $this->csv = tempnam(sys_get_temp_dir(), 'cases');
         file_put_contents($this->csv, implode("\n", [
@@ -40,6 +41,7 @@ class ImportSheetCasesTest extends TestCase
             'PG-23,منى عادل حسن,31,30-10 - 2025,1060000001,📱 واتساب,,cbct,450,,,,,,شاي 20',
             'PG-24,YY,6,2026-06-20,Y,,,,,,,,,,',
             'PG-25,هالة ممدوح,,غير معروف,,,,,,,,,,,',
+            'PG-26,سها منير,,0226-06-01,,,د/ وليد العشري,peri,100,,,,,,',
         ]));
     }
 
@@ -53,8 +55,11 @@ class ImportSheetCasesTest extends TestCase
     {
         $this->artisan('cases:import-sheet', ['csv' => $this->csv, '--branch' => 'الجماليه'])->assertSuccessful();
 
-        $this->assertSame(3, MedicalCase::count());
-        $this->assertSame(2, Patient::count());
+        $this->assertSame(4, MedicalCase::count());
+        $this->assertSame(3, Patient::count());
+        $typo = MedicalCase::where('case_code', 'PG-26')->firstOrFail();
+        $this->assertSame('2026-06-01', $typo->exam_date->toDateString());
+        $this->assertSame('وليدالعشري', $typo->doctor->user->name);
 
         $first = MedicalCase::where('case_code', 'PG-21')->firstOrFail();
         $this->assertSame('2025-09-27', $first->exam_date->toDateString());
@@ -90,10 +95,10 @@ class ImportSheetCasesTest extends TestCase
         $this->assertSame(1, MedicalCase::count());
 
         $this->artisan('cases:import-sheet', ['csv' => $this->csv, '--branch' => 'الجماليه', '--wipe' => true, '--code-prefix' => 'MS'])->assertSuccessful();
-        $this->assertSame(3, MedicalCase::count());
+        $this->assertSame(4, MedicalCase::count());
         $this->assertFalse(MedicalCase::whereKey($old->id)->exists());
         $this->assertFalse(Patient::whereKey($old->patient_id)->exists());
-        $this->assertSame(['MS-00001', 'MS-00002', 'MS-00003'], MedicalCase::orderBy('case_code')->pluck('case_code')->all());
-        $this->assertSame(2, Payment::count());
+        $this->assertSame(['MS-00001', 'MS-00002', 'MS-00003', 'MS-00004'], MedicalCase::orderBy('case_code')->pluck('case_code')->all());
+        $this->assertSame(3, Payment::count());
     }
 }

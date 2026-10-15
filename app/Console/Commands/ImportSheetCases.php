@@ -226,9 +226,25 @@ class ImportSheetCases extends Command
         if (isset($doctors[$key])) {
             return $doctors[$key];
         }
-        $matches = array_values(array_filter($doctors, fn ($id, $full) => str_starts_with($full.' ', $key.' ') || str_starts_with($key.' ', $full.' '), ARRAY_FILTER_USE_BOTH));
+        $compact = fn (string $v) => str_replace(' ', '', $v);
+        $words = explode(' ', $key);
+        $rules = [
+            fn (string $full) => $compact($full) === $compact($key),
+            fn (string $full) => str_starts_with($full.' ', $key.' ') || str_starts_with($key.' ', $full.' '),
+            fn (string $full) => count($words) >= 2 && str_starts_with($full, $words[0].' ') && str_ends_with($full, ' '.end($words)),
+            fn (string $full) => mb_strlen($compact($key)) >= 8 && levenshtein($compact($full), $compact($key)) <= 2,
+        ];
+        foreach ($rules as $rule) {
+            $matches = array_values(array_unique(array_filter($doctors, fn ($id, $full) => $rule((string) $full), ARRAY_FILTER_USE_BOTH)));
+            if (count($matches) === 1) {
+                return $matches[0];
+            }
+            if (count($matches) > 1) {
+                return null;
+            }
+        }
 
-        return count(array_unique($matches)) === 1 ? $matches[0] : null;
+        return null;
     }
 
     /** @param array<string, int> $exams */
@@ -250,6 +266,8 @@ class ImportSheetCases extends Command
     private static function date(string $value): ?CarbonImmutable
     {
         $value = preg_replace('/\s+/', '', str_replace('\\', '/', $value)) ?? '';
+        // Typos like 0226-06-01 or 0206-05-21 in the sheet mean 2026.
+        $value = preg_replace('/^02\d{2}(-\d{2}-\d{2})$/', '2026$1', $value) ?? $value;
         foreach (['!Y-m-d', '!d/m/Y', '!d-m-Y'] as $format) {
             try {
                 $date = CarbonImmutable::createFromFormat($format, $value);
