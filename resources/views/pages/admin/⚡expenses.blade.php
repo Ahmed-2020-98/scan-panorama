@@ -73,7 +73,7 @@ new #[Title('المصروفات والرواتب')] class extends Component {
 }; ?>
 <div class="mx-auto w-full max-w-6xl space-y-5">
     <x-page-header eyebrow="الحسابات" title="المصروفات والرواتب" subtitle="كل ما يُصرف من المركز، ورواتب الموظفين بعدد الشيفتات">
-        <x-slot:actions><flux:button variant="primary" icon="plus" wire:click="create">إضافة مصروف</flux:button></x-slot:actions>
+        <x-slot:actions><flux:button icon="table-cells" :href="route('exports.expenses', ['month' => $month, 'branch' => $branch ?: null])">تصدير الشهر Excel</flux:button><flux:button variant="primary" icon="plus" wire:click="create">إضافة مصروف</flux:button></x-slot:actions>
     </x-page-header>
 
     <x-panel><div class="flex flex-wrap items-end gap-3">

@@ -172,7 +172,7 @@ class ImportSheetCases extends Command
             }
 
             $phone = preg_replace('/\D+/', '', $cells[4] ?? '') ?? '';
-            if (strlen($phone) === 9 || strlen($phone) === 10) {
+            if (str_starts_with($phone, '1') && (strlen($phone) === 9 || strlen($phone) === 10)) {
                 $phone = '0'.$phone;
             }
             $age = $cells[2] ?? '';

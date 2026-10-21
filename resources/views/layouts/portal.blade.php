@@ -33,6 +33,10 @@
 
         @include('partials.center-footer')
 
+        @persist('upload-tray')
+            <x-upload-tray />
+        @endpersist
+
         @persist('toast')
             <flux:toast.group position="bottom start">
                 <flux:toast />

@@ -20,6 +20,9 @@ use App\Services\CenterAlerts;
 use App\Services\DoctorPerformance;
 use App\Support\Barcode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -206,6 +209,52 @@ class CenterOperationsTest extends TestCase
         $vcf = $this->get(route('contacts.export', 'patients'))->assertOk()->streamedContent();
         $this->assertSame(2, substr_count($vcf, 'BEGIN:VCARD'));
         $this->assertStringContainsString('TEL;TYPE=CELL:+201012345678', $vcf);
+    }
+
+    public function test_campaign_with_picture_shows_copy_and_app_links(): void
+    {
+        Storage::fake('public');
+        $patient = Patient::factory()->create(['phone' => '01012345678']);
+        MedicalCase::factory()->create(['patient_id' => $patient->id, 'branch_id' => $this->branch->id]);
+
+        Livewire::test('pages::admin.campaigns')->set('image', UploadedFile::fake()->image('offer.jpg'))
+            ->set('message', 'أهلًا {الاسم}')->call('start')->assertHasNoErrors();
+        $campaign = Campaign::sole();
+        Storage::disk('public')->assertExists($campaign->image_path);
+
+        Livewire::test('pages::admin.campaign', ['campaign' => $campaign])
+            ->assertSee('نسخ الصورة')->assertSee('تطبيق واتساب')->assertSee('data-phone="201012345678"', false);
+    }
+
+    public function test_monthly_exports_of_cases_and_expenses(): void
+    {
+        $case = MedicalCase::factory()->create(['branch_id' => $this->branch->id, 'exam_date' => '2026-09-14', 'final_price_minor' => 30000, 'currency' => 'EGP']);
+        MedicalCase::factory()->create(['branch_id' => $this->branch->id, 'exam_date' => '2026-08-30']);
+        Payment::create(['medical_case_id' => $case->id, 'branch_id' => $this->branch->id, 'amount_minor' => 10000, 'currency' => 'EGP', 'method' => 'cash', 'collected_by' => $this->admin->id, 'received_at' => now(), 'request_id' => 'x1']);
+        Expense::create(['branch_id' => $this->branch->id, 'category' => 'rent', 'amount_minor' => 500000, 'currency' => 'EGP', 'spent_on' => '2026-09-01', 'note' => 'إيجار سبتمبر']);
+
+        $sheet = $this->sheetXml($this->get(route('exports.cases', ['month' => '2026-09']))->assertOk());
+        $this->assertStringContainsString($case->case_code, $sheet);
+        $this->assertStringContainsString('<v>300</v>', $sheet);
+        $this->assertStringContainsString('<v>200</v>', $sheet);
+        $this->assertSame(2, substr_count($sheet, '<row '));
+
+        $sheet = $this->sheetXml($this->get(route('exports.expenses', ['month' => '2026-09']))->assertOk());
+        $this->assertStringContainsString('إيجار سبتمبر', $sheet);
+        $this->assertStringContainsString('<v>5000</v>', $sheet);
+
+        $this->get(route('exports.cases', ['month' => 'bad']))->assertStatus(422);
+        $this->actingAs(User::factory()->create(['role' => Role::Technician]))->get(route('exports.expenses'))->assertForbidden();
+    }
+
+    private function sheetXml(TestResponse $response): string
+    {
+        $zip = new \ZipArchive;
+        $zip->open($response->baseResponse->getFile()->getPathname());
+        $xml = (string) $zip->getFromName('xl/worksheets/sheet1.xml');
+        $zip->close();
+
+        return $xml;
     }
 
     public function test_print_pages_and_patient_phone_from_case_form(): void

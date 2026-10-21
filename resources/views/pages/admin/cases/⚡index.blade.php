@@ -88,6 +88,14 @@ new #[Title('المرضى والحالات')] class extends Component {
 <div class="mx-auto w-full max-w-7xl">
     <x-page-header eyebrow="سجل الأشعة" title="المرضى والحالات" subtitle="كل مريض وحالاته وملفاته وحالة مشاركتها في مكان واحد">
         <x-slot:actions>
+            <div class="relative" x-data="{ open: false, month: '{{ today()->format('Y-m') }}' }" x-on:click.outside="open = false" x-on:keydown.escape="open = false">
+                <flux:button icon="table-cells" x-on:click="open = ! open">تصدير Excel</flux:button>
+                <div x-show="open" x-cloak x-transition class="absolute end-0 z-30 mt-2 w-64 space-y-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-lg">
+                    <flux:input type="month" label="حالات شهر" x-model="month" />
+                    <a x-bind:href="`{{ route('exports.cases') }}?month=${month}{{ $branch ? '&branch='.$branch : '' }}`" class="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-3 text-sm font-medium text-white hover:bg-brand-700"><flux:icon.arrow-down-tray variant="mini" /> تنزيل الملف</a>
+                    <p class="text-xs text-zinc-500">يفتح في Excel، أو ارفعه على Google Sheets (ملف ← استيراد).</p>
+                </div>
+            </div>
             <flux:button variant="primary" icon="plus" :href="route('cases.create')" wire:navigate>حالة جديدة</flux:button>
         </x-slot:actions>
     </x-page-header>

@@ -5,6 +5,7 @@ use App\Http\Controllers\CaseUploadController;
 use App\Http\Controllers\ContactsExportController;
 use App\Http\Controllers\DoctorLinkController;
 use App\Http\Controllers\DriveConnectionController;
+use App\Http\Controllers\MonthlyExportController;
 use App\Http\Controllers\PatientShareController;
 use App\Http\Controllers\PrintController;
 use App\Http\Controllers\SharedCaseController;
@@ -36,6 +37,7 @@ Route::middleware('auth')->group(function () {
         Route::livewire('notifications', 'pages::admin.notifications')->name('notifications.index');
         Route::get('cases/{case}/print', [PrintController::class, 'case'])->name('cases.print');
         Route::get('cases/{case}/receipt', [PrintController::class, 'receipt'])->name('cases.receipt');
+        Route::get('exports/cases.xlsx', [MonthlyExportController::class, 'cases'])->name('exports.cases');
 
     });
 
@@ -44,6 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::livewire('accounts', 'pages::admin.accounts')->middleware('permission:view_financials')->name('accounts.index');
     Route::livewire('visits', 'pages::admin.visits')->middleware('permission:manage_visits')->name('visits.index');
     Route::livewire('expenses', 'pages::admin.expenses')->middleware('permission:manage_expenses')->name('expenses.index');
+    Route::get('exports/expenses.xlsx', [MonthlyExportController::class, 'expenses'])->middleware('permission:manage_expenses')->name('exports.expenses');
     Route::livewire('campaigns', 'pages::admin.campaigns')->middleware('permission:send_campaigns')->name('campaigns.index');
     Route::livewire('campaigns/{campaign}', 'pages::admin.campaign')->middleware('permission:send_campaigns')->name('campaigns.show');
     Route::get('contacts/{audience}.vcf', [ContactsExportController::class, '__invoke'])->whereIn('audience', ['patients', 'doctors'])->middleware('permission:send_campaigns')->name('contacts.export');

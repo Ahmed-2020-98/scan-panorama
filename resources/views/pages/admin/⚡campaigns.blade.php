@@ -7,7 +7,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\{Computed,Title};
 use Livewire\Component;
+use Livewire\WithFileUploads;
 new #[Title('رسائل العروض')] class extends Component {
+    use WithFileUploads;
+    public $image = null;
     public string $audience='patients'; public string $branch=''; public string $since=''; public string $title=''; public string $message='';
     public const TEMPLATES = [
         'offer' => ['عرض خصم', "أهلًا {الاسم} 👋\nيسعدنا نبلغك بعرض خاص في مركز الأشعة: خصم __% على __ حتى __.\nللحجز والاستفسار رد على الرسالة دي."],
@@ -21,12 +24,12 @@ new #[Title('رسائل العروض')] class extends Component {
     #[Computed] public function count(): int { return CampaignAudience::for(auth()->user(),$this->audience,$this->branch ? (int)$this->branch : null,$this->audience==='patients' && $this->since ? $this->since : null)->count(); }
     #[Computed] public function campaigns() { return Campaign::withCount(['recipients','recipients as sent_count'=>fn($q)=>$q->whereNotNull('sent_at')])->with('creator')->when(! auth()->user()->isAdmin(),fn($q)=>$q->where(fn($w)=>$w->where('created_by',auth()->id())->orWhereIn('branch_id',AccessScope::branchIds(auth()->user()))))->latest()->limit(30)->get(); }
     public function start() {
-        $data=$this->validate(['audience'=>['required',Rule::in(array_keys(Campaign::AUDIENCES))],'title'=>['required','string','max:150'],'message'=>['required','string','max:2000','not_regex:/__/'],'branch'=>['nullable','integer'],'since'=>['nullable','date']],['message.not_regex'=>'كمّل الأماكن الفاضية (__) في الرسالة قبل الإرسال.']);
+        $data=$this->validate(['audience'=>['required',Rule::in(array_keys(Campaign::AUDIENCES))],'title'=>['required','string','max:150'],'message'=>['required','string','max:2000','not_regex:/__/'],'branch'=>['nullable','integer'],'since'=>['nullable','date'],'image'=>['nullable','image','mimes:png,jpg,jpeg,webp','max:5120']],['message.not_regex'=>'كمّل الأماكن الفاضية (__) في الرسالة قبل الإرسال.']);
         if($this->branch){ abort_unless(AccessScope::branches(auth()->user())->whereKey($this->branch)->exists(),403); }
         $people=CampaignAudience::for(auth()->user(),$this->audience,$this->branch ? (int)$this->branch : null,$this->audience==='patients' && $this->since ? $this->since : null);
         if($people->isEmpty()){ $this->addError('audience','لا يوجد أرقام موبايل صحيحة لهذا الاختيار.'); return; }
         $campaign=DB::transaction(function() use($data,$people){
-            $c=Campaign::create(['audience'=>$data['audience'],'title'=>trim($data['title']),'message'=>trim($data['message']),'branch_id'=>$this->branch ?: (auth()->user()->isAdmin() ? null : auth()->user()->branch_id),'created_by'=>auth()->id()]);
+            $c=Campaign::create(['audience'=>$data['audience'],'title'=>trim($data['title']),'message'=>trim($data['message']),'image_path'=>$this->image?->store('campaigns','public'),'branch_id'=>$this->branch ?: (auth()->user()->isAdmin() ? null : auth()->user()->branch_id),'created_by'=>auth()->id()]);
             foreach($people->chunk(200) as $chunk){ CampaignRecipient::insert($chunk->map(fn($p)=>['campaign_id'=>$c->id,'name'=>mb_substr($p['name'],0,255),'phone'=>$p['phone']])->all()); }
             ActivityLogger::log('campaign.created',$c,['audience'=>$c->audience,'recipients'=>$people->count()]);
             return $c;
@@ -57,6 +60,15 @@ new #[Title('رسائل العروض')] class extends Component {
                 </div>
                 <flux:input wire:model="title" label="اسم الحملة (للمتابعة فقط)" />
                 <flux:textarea wire:model.live.debounce.400ms="message" label="نص الرسالة" rows="7" description="{الاسم} يتبدل باسم كل شخص. كمّل الأماكن (__) قبل الإرسال." />
+                <div>
+                    <div class="mb-1 text-sm font-medium text-zinc-800">صورة مع الرسالة (اختياري)</div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <label class="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-sm hover:bg-zinc-50"><flux:icon.photo variant="mini" class="text-brand-600" /> {{ $image ? 'تغيير الصورة' : 'اختر صورة' }}<input type="file" wire:model="image" accept="image/png,image/jpeg,image/webp" class="sr-only"></label>
+                        @if($image)<flux:button size="sm" variant="ghost" wire:click="$set('image', null)">إزالة</flux:button>@endif
+                        <span wire:loading wire:target="image" class="text-xs text-zinc-500">جارٍ التحميل…</span>
+                    </div>
+                    <flux:error name="image" />
+                </div>
                 <flux:error name="audience" />
                 <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-zinc-50 p-3">
                     <span class="text-sm">هتتبعت لـ <strong class="ltr-nums text-brand-700">{{ $this->count }}</strong> رقم موبايل</span>
@@ -68,6 +80,7 @@ new #[Title('رسائل العروض')] class extends Component {
         <div class="space-y-5 lg:col-span-2">
             <x-panel title="معاينة" icon="eye">
                 <div class="rounded-2xl bg-[#e7ddd3] p-4">
+                    @if($image && ! $errors->has('image') && $image->isPreviewable())<div class="mb-2 ms-auto max-w-[85%] rounded-xl rounded-se-none bg-[#d9fdd3] p-1 shadow-sm"><img src="{{ $image->temporaryUrl() }}" alt="" class="max-h-60 w-full rounded-lg object-cover"></div>@endif
                     <div class="ms-auto max-w-[85%] whitespace-pre-line rounded-xl rounded-se-none bg-[#d9fdd3] p-3 text-sm leading-relaxed text-zinc-800 shadow-sm">{{ str_replace('{الاسم}', $audience==='doctors' ? 'أحمد' : 'محمد', $message) }}</div>
                 </div>
             </x-panel>

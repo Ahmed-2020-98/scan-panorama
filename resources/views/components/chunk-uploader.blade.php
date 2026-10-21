@@ -3,6 +3,14 @@
 @php
     $config = [
         'url' => route('cases.uploads.store', $case),
+        'caseId' => $case->id,
+        'caseCode' => $case->case_code,
+        'caseUrl' => match (auth()->user()->role) {
+            \App\Enums\Role::Doctor => route('portal.cases.show', $case),
+            \App\Enums\Role::Technician => route('technician'),
+            default => route('cases.show', $case),
+        },
+        'typeLabel' => $type->shortLabel(),
         'type' => $type->value,
         'chunkSize' => \App\Support\UploadLimits::chunkSize(),
         'maxBytes' => $type->maxBytes(),
@@ -37,7 +45,7 @@
                         <template x-if="item.status === 'uploading' || item.status === 'queued'">
                             <button type="button" x-on:click="cancel(item)" class="text-xs text-zinc-500 hover:text-red-600">إلغاء</button>
                         </template>
-                        <template x-if="item.status === 'error' || item.status === 'cancelled'">
+                        <template x-if="(item.status === 'error' || item.status === 'cancelled') && item.file">
                             <button type="button" x-on:click="retry(item)" class="min-h-11 px-2 text-xs text-brand-700">إعادة المحاولة</button>
                             <button type="button" x-on:click="remove(item)" class="text-xs text-zinc-500 hover:text-zinc-800">إخفاء</button>
                         </template>

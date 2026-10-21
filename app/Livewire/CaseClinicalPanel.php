@@ -10,6 +10,7 @@ use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class CaseClinicalPanel extends Component
@@ -46,6 +47,15 @@ class CaseClinicalPanel extends Component
         $file->update(['storage_status' => 'pending', 'storage_error' => null]);
         UploadCaseFileToDrive::dispatch($file->id);
         QueueKick::drainAfterResponse();
+    }
+
+    /** The global upload queue finished a file; refresh only when it belongs to this case. */
+    #[On('case-files-uploaded')]
+    public function filesUploaded(int $caseId): void
+    {
+        if ($caseId !== $this->medicalCase->id) {
+            $this->skipRender();
+        }
     }
 
     public function render(): View
