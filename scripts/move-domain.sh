@@ -30,6 +30,9 @@ SSH=(ssh -i "$HOME/.ssh/id_ed25519_hostinger" -p 65002 -o IdentitiesOnly=yes "$H
   cd \"\$NEW_DIR/app\"
   rm -f public/storage && ln -s \"\$NEW_DIR/app/storage/app/public\" public/storage
   if grep -q '^APP_URL=' .env; then sed -i 's#^APP_URL=.*#APP_URL=https://$NEW#' .env; else echo 'APP_URL=https://$NEW' >> .env; fi
+  # Absolute paths in .env (DB_DATABASE) must point at the copy, not the old folder.
+  sed -i \"s#\$OLD_DIR/app/#\$NEW_DIR/app/#g\" .env
+  grep -q \"\$OLD_DIR\" .env && { echo '.env still points at the old folder'; exit 1; }
   \$PHP artisan optimize:clear >/dev/null
   \$PHP artisan optimize
   \$PHP artisan up

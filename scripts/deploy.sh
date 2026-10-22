@@ -22,7 +22,10 @@ rm /tmp/clinic-deploy.tar.gz
 
 "${SSH[@]}" "set -e; cd $REMOTE; PHP=/opt/alt/php84/usr/bin/php
   \$PHP artisan down || true
-  [ -f database/database.sqlite ] && cp database/database.sqlite database/database.backup-\$(date +%Y%m%d%H%M).sqlite
+  # Back up the database file the site actually uses (DB_DATABASE can be an absolute path).
+  DB=\$(grep -E '^DB_DATABASE=' .env | cut -d= -f2- | tr -d '\"'); DB=\${DB:-database/database.sqlite}
+  [ -f \"\$DB\" ] || { echo \"Live database not found at \$DB\"; \$PHP artisan up; exit 1; }
+  cp \"\$DB\" database/database.backup-\$(date +%Y%m%d%H%M).sqlite
   tar -xzf ../deploy.tar.gz 2>/dev/null; rm ../deploy.tar.gz
   grep -q 'x-httpd-php84' public/.htaccess || sed -i '1i AddHandler application/x-httpd-php84 .php\n' public/.htaccess
   \$PHP /usr/local/bin/composer install --no-dev --optimize-autoloader --no-interaction
