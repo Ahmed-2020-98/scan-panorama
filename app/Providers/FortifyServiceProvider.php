@@ -67,6 +67,12 @@ class FortifyServiceProvider extends ServiceProvider
                 ]);
             }
 
+            if (! $user->canWorkNow()) {
+                throw ValidationException::withMessages([
+                    Fortify::username() => 'حسابك مفتوح '.$user->workScheduleLabel().' بس.',
+                ]);
+            }
+
             return $user;
         });
     }

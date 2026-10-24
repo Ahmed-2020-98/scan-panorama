@@ -308,12 +308,12 @@ class RadiologyMvpTest extends TestCase
     {
         Livewire::test('pages::admin.users')->call('create')->set('name', 'فني تجريبي')
             ->set('phone', '01099998887')->set('password', 'example-password')->set('role', 'technician')
-            ->set('branch_id', (string) $this->branch->id)->call('save')->assertHasNoErrors();
+            ->set('branch_ids', [(string) $this->branch->id])->call('save')->assertHasNoErrors();
         $tech = User::where('phone', '01099998887')->sole();
         $this->assertTrue($tech->isTechnician());
         $this->assertDatabaseHas('activity_logs', ['action' => 'user.created', 'subject_id' => $tech->id]);
         Livewire::test('pages::admin.users')->call('edit', $this->manager->id)->set('role', 'reception')
-            ->set('branch_id', (string) $this->branch->id)->call('save')->assertHasErrors('role');
+            ->set('branch_ids', [(string) $this->branch->id])->call('save')->assertHasErrors('role');
         $this->assertTrue($this->manager->fresh()->isAdmin());
     }
 

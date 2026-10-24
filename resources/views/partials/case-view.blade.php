@@ -6,6 +6,8 @@
 @php($forPatient = $forPatient ?? false)
 @php($grouped = $case->files->groupBy(fn ($file) => $file->type->value))
 @php($sliderImages = $case->files->filter(fn ($f) => $f->isImage())->values())
+@php($showGallery = ! $forPatient && $sliderImages->isNotEmpty())
+@php($sliderList = $sliderImages->map(fn ($f) => [$fileUrl($f, 'view'), $f->original_name, $fileUrl($f, 'download')])->all())
 
 <div class="space-y-6">
     <section class="film dark overflow-hidden rounded-2xl px-6 py-7 shadow-[0_24px_60px_-36px_rgb(4_11_25/0.8)] sm:px-8">
@@ -50,12 +52,20 @@
         </x-panel>
     @endif
 
+    @if ($showGallery)
+        <x-panel title="الصور" :subtitle="$sliderImages->count().' صورة'" icon="photo">
+            <x-image-gallery :images="$sliderList" />
+        </x-panel>
+    @endif
+
     @foreach (\App\Enums\CaseFileType::cases() as $type)
-        @continue(! $grouped->has($type->value))
+        {{-- Images already sit in the gallery above (doctor view). --}}
+        @php($typeFiles = ($grouped[$type->value] ?? collect())->reject(fn ($f) => $showGallery && $f->isImage()))
+        @continue($typeFiles->isEmpty())
 
         <x-panel :title="$type->label()" :subtitle="$type->description()" :icon="$type->icon()">
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                @foreach ($grouped[$type->value] as $file)
+                @foreach ($typeFiles as $file)
                     <div class="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition hover:border-brand-300 hover:shadow-[0_18px_40px_-26px_rgb(8_30_70/0.55)]">
                         @if ($file->isImage())
                             <a href="{{ $fileUrl($file, 'view') }}" target="_blank" x-data x-on:click.prevent="$dispatch('open-slider-case-images', { index: {{ (int) $sliderImages->search(fn ($f) => $f->id === $file->id) }} })" class="film crop-marks relative block aspect-video cursor-zoom-in overflow-hidden">
@@ -94,5 +104,5 @@
         </x-panel>
     @endforeach
 
-    <x-image-slider :images="$sliderImages->map(fn ($f) => [$fileUrl($f, 'view'), $f->original_name, $fileUrl($f, 'download')])->all()" />
+    <x-image-slider :images="$sliderList" />
 </div>

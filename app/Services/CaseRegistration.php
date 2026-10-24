@@ -22,7 +22,12 @@ class CaseRegistration
     {
         Gate::forUser($actor)->authorize($case ? 'update' : 'create', $case ?? MedicalCase::class);
         $data += array_fill_keys(['branch_id', 'exam_date', 'doctor_id', 'technician_id', 'exam_type_id', 'notes_internal', 'notes_for_doctor'], null);
-        $data['branch_id'] = $actor->isAdmin() ? ($data['branch_id'] ?: Branch::active()->value('id')) : $actor->branch_id;
+        // Staff may work in several branches: keep the chosen one only if it is theirs.
+        if ($actor->isAdmin()) {
+            $data['branch_id'] = $data['branch_id'] ?: Branch::active()->value('id');
+        } elseif (! in_array((int) $data['branch_id'], AccessScope::branchIds($actor), true)) {
+            $data['branch_id'] = $case->branch_id ?? $actor->branch_id ?? (AccessScope::branchIds($actor)[0] ?? null);
+        }
         $data['exam_date'] = $data['exam_date'] ?: today()->toDateString();
         $data = Validator::make($data, [
             'patient_id' => ['nullable', 'integer'], 'name' => ['nullable', 'string', 'max:255'],
@@ -42,7 +47,7 @@ class CaseRegistration
             abort_unless($doctor->branches()->whereKey($branch->id)->exists(), 422, 'الطبيب غير مرتبط بالفرع المختار.');
         }
         if (! empty($data['technician_id'])) {
-            abort_unless(User::whereKey($data['technician_id'])->where('branch_id', $branch->id)->exists(), 422, 'الفني غير مرتبط بالفرع المختار.');
+            abort_unless(User::whereKey($data['technician_id'])->inBranch($branch->id)->exists(), 422, 'الفني غير مرتبط بالفرع المختار.');
         }
         if (! empty($data['exam_type_id'])) {
             $exam = ExamType::active()->whereKey($data['exam_type_id'])->firstOrFail();
@@ -73,6 +78,9 @@ class CaseRegistration
             } else {
                 $case = MedicalCase::create($attributes + ['created_by' => $actor->id]);
                 ActivityLogger::log('case.created', $case);
+                if (! $actor->isAdmin() && ! $actor->isDoctor() && (int) $actor->branch_id !== $branch->id) {
+                    $actor->forceFill(['branch_id' => $branch->id])->save(); // next case defaults to this branch
+                }
             }
             $patient->branches()->syncWithoutDetaching([$branch->id]);
 

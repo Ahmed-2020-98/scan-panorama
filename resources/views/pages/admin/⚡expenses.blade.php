@@ -30,8 +30,8 @@ new #[Title('المصروفات والرواتب')] class extends Component {
     #[Computed] public function total(): int { return (int) $this->scoped()->sum('amount_minor'); }
     #[Computed] public function staff() {
         return User::whereNotNull('shift_rate_minor')->where('shift_rate_minor','>',0)->where('is_active',true)
-            ->when(! auth()->user()->isAdmin(), fn($q)=>$q->whereIn('branch_id',AccessScope::branchIds(auth()->user())))
-            ->when($this->branch, fn($q,$b)=>$q->where('branch_id',$b))->orderBy('name')->get();
+            ->when(! auth()->user()->isAdmin(), fn($q)=>$q->where(fn($w)=>$w->whereIn('branch_id',AccessScope::branchIds(auth()->user()))->orWhereHas('branches',fn($b)=>$b->whereIn('branches.id',AccessScope::branchIds(auth()->user())))))
+            ->when($this->branch, fn($q,$b)=>$q->inBranch((int)$b))->orderBy('name')->get();
     }
     #[Computed] public function paidThisMonth(): array { return $this->scoped()->where('category','salaries')->whereNotNull('user_id')->selectRaw('user_id, SUM(amount_minor) as total, SUM(shifts) as shifts')->groupBy('user_id')->get()->keyBy('user_id')->all(); }
     public function create(): void { $this->editingId=null; $this->form=['category'=>'other','amount'=>'','spent_on'=>today()->toDateString(),'branch_id'=>(string)(auth()->user()->branch_id ?? ''),'note'=>'']; $this->resetValidation(); Flux::modal('expense-form')->show(); }

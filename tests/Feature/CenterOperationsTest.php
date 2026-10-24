@@ -80,7 +80,7 @@ class CenterOperationsTest extends TestCase
         $reception = User::factory()->reception()->create(['branch_id' => $this->branch->id, 'permission_overrides' => ['manage_users' => true]]);
         $this->actingAs($reception);
         Livewire::test('pages::admin.users')
-            ->set('name', 'X')->set('phone', '01000000009')->set('role', 'manager')->set('password', 'Password-123!')->set('branch_id', (string) $this->branch->id)
+            ->set('name', 'X')->set('phone', '01000000009')->set('role', 'manager')->set('password', 'Password-123!')->set('branch_ids', [(string) $this->branch->id])
             ->call('save')->assertForbidden();
         Livewire::test('pages::admin.users')->call('edit', $this->admin->id)->assertForbidden();
     }
@@ -89,7 +89,7 @@ class CenterOperationsTest extends TestCase
     {
         $component = Livewire::test('pages::admin.users')
             ->set('name', 'فني أشعة')->set('phone', '01011112222')->set('role', 'reception')->set('password', 'Password-123!')
-            ->set('branch_id', (string) $this->branch->id)->set('shift_rate', '250')
+            ->set('branch_ids', [(string) $this->branch->id])->set('shift_rate', '250')
             ->call('save')->assertHasNoErrors();
         $user = User::where('name', 'فني أشعة')->sole();
         $this->assertSame(25000, $user->shift_rate_minor);

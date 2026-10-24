@@ -22,6 +22,7 @@ new #[Title('رسائل العروض')] class extends Component {
     public function mount(): void { $this->useTemplate('offer'); }
     public function useTemplate(string $key): void { abort_unless(isset(self::TEMPLATES[$key]),404); [$this->title,$this->message]=self::TEMPLATES[$key]; if($key==='doctors'){ $this->audience='doctors'; } }
     #[Computed] public function count(): int { return CampaignAudience::for(auth()->user(),$this->audience,$this->branch ? (int)$this->branch : null,$this->audience==='patients' && $this->since ? $this->since : null)->count(); }
+    #[Computed] public function unreachable() { return CampaignAudience::unreachable(auth()->user(),$this->audience,$this->branch ? (int)$this->branch : null,$this->audience==='patients' && $this->since ? $this->since : null); }
     #[Computed] public function campaigns() { return Campaign::withCount(['recipients','recipients as sent_count'=>fn($q)=>$q->whereNotNull('sent_at')])->with('creator')->when(! auth()->user()->isAdmin(),fn($q)=>$q->where(fn($w)=>$w->where('created_by',auth()->id())->orWhereIn('branch_id',AccessScope::branchIds(auth()->user()))))->latest()->limit(30)->get(); }
     public function start() {
         $data=$this->validate(['audience'=>['required',Rule::in(array_keys(Campaign::AUDIENCES))],'title'=>['required','string','max:150'],'message'=>['required','string','max:2000','not_regex:/__/'],'branch'=>['nullable','integer'],'since'=>['nullable','date'],'image'=>['nullable','image','mimes:png,jpg,jpeg,webp','max:5120']],['message.not_regex'=>'كمّل الأماكن الفاضية (__) في الرسالة قبل الإرسال.']);
@@ -74,6 +75,16 @@ new #[Title('رسائل العروض')] class extends Component {
                     <span class="text-sm">هتتبعت لـ <strong class="ltr-nums text-brand-700">{{ $this->count }}</strong> رقم موبايل</span>
                     <flux:button type="submit" variant="primary" icon="paper-airplane">تجهيز قائمة الإرسال</flux:button>
                 </div>
+                <p class="text-xs text-zinc-500">الأرقام المكررة (زي أهل نفس البيت) بيتبعتلها مرة واحدة.</p>
+                @if($missed = $this->unreachable->count())
+                    <flux:modal.trigger name="unreachable">
+                        <button type="button" class="flex w-full items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-start text-sm text-amber-900 hover:bg-amber-100">
+                            <flux:icon.exclamation-triangle variant="mini" class="shrink-0 text-amber-600" />
+                            <span class="flex-1"><strong class="ltr-nums">{{ $missed }}</strong> رقم مش موبايل صحيح (أرضي أو ناقص/زايد رقم) ومش هيوصلهم</span>
+                            <span class="shrink-0 font-medium text-amber-700">اعرضهم</span>
+                        </button>
+                    </flux:modal.trigger>
+                @endif
             </form>
         </x-panel>
 
@@ -94,6 +105,20 @@ new #[Title('رسائل العروض')] class extends Component {
             </x-panel>
         </div>
     </div>
+
+    <flux:modal name="unreachable" class="w-full max-w-lg">
+        <flux:heading size="lg">أرقام مش هيوصلها الإرسال</flux:heading>
+        <flux:text class="mt-1">صلّح الرقم من صفحة {{ $audience==='doctors' ? 'الطبيب' : 'المريض' }} وهيدخل في الإرسال الجاي.</flux:text>
+        <div class="mt-4 max-h-[60vh] divide-y overflow-y-auto">
+            @foreach($this->unreachable->take(300) as $person)
+                <div class="flex items-center gap-3 py-2" wire:key="u-{{ $loop->index }}">
+                    <div class="min-w-0 flex-1"><div class="truncate text-sm font-medium">{{ $person['name'] }}</div><div class="text-xs text-zinc-500 ltr-nums" dir="ltr">{{ $person['phone'] ?: 'بدون رقم' }}</div></div>
+                    <flux:button size="xs" :href="$person['edit_url']" target="_blank">تعديل</flux:button>
+                </div>
+            @endforeach
+        </div>
+        @if($this->unreachable->count() > 300)<p class="mt-2 text-xs text-zinc-500">معروض أول 300 بس.</p>@endif
+    </flux:modal>
 
     <x-panel title="الحملات السابقة" :padded="false">
         <div class="divide-y">

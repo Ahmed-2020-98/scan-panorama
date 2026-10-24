@@ -4,12 +4,15 @@ namespace App\Models;
 
 use App\Enums\Permission;
 use App\Enums\Role;
+use Carbon\CarbonInterface;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -38,8 +41,13 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property array<string, bool>|null $permission_overrides
  * @property string|null $font
  * @property int|null $shift_rate_minor
+ * @property array<int, int>|null $work_days
+ * @property string|null $work_from
+ * @property string|null $work_until
+ * @property Carbon|null $open_until
+ * @property-read Collection<int, Branch> $branches
  */
-#[Fillable(['name', 'email', 'phone', 'role', 'is_active', 'password', 'branch_id', 'permission_overrides', 'font', 'shift_rate_minor'])]
+#[Fillable(['name', 'email', 'phone', 'role', 'is_active', 'password', 'branch_id', 'permission_overrides', 'font', 'shift_rate_minor', 'work_days', 'work_from', 'work_until', 'open_until'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -61,6 +69,8 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'shift_rate_minor' => 'integer',
             'permission_overrides' => 'array',
+            'work_days' => 'array',
+            'open_until' => 'datetime',
         ];
     }
 
@@ -91,6 +101,79 @@ class User extends Authenticatable
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class)->withTrashed();
+    }
+
+    /**
+     * Branches a staff member works in (branch_id is the last one used).
+     *
+     * @return BelongsToMany<Branch, $this>
+     */
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(Branch::class);
+    }
+
+    /**
+     * Users working in a branch, through their branches or their single/last-used branch.
+     *
+     * @param  Builder<User>  $query
+     */
+    public function scopeInBranch(Builder $query, int $branchId): void
+    {
+        $query->where(fn (Builder $q) => $q->where('branch_id', $branchId)->orWhereHas('branches', fn (Builder $b) => $b->whereKey($branchId)));
+    }
+
+    /** Day names by Carbon dayOfWeek, and the order the week is shown in (Saturday first). */
+    public const WEEK_DAYS = [0 => 'الأحد', 1 => 'الإثنين', 2 => 'الثلاثاء', 3 => 'الأربعاء', 4 => 'الخميس', 5 => 'الجمعة', 6 => 'السبت'];
+
+    public const WEEK_ORDER = [6, 0, 1, 2, 3, 4, 5];
+
+    /** Reception, marketing and technicians can be limited to set days and hours; managers and doctors never are. */
+    public function hasWorkHours(): bool
+    {
+        return $this->hasRole(Role::Reception, Role::Marketing, Role::Technician);
+    }
+
+    public function canWorkNow(?CarbonInterface $at = null): bool
+    {
+        if (! $this->hasWorkHours()) {
+            return true;
+        }
+        $at = ($at ?? now())->copy()->setTimezone((string) config('app.timezone'));
+        if ($this->open_until && $this->open_until->greaterThan($at)) {
+            return true;
+        }
+        if ($this->work_days && ! in_array($at->dayOfWeek, array_map('intval', $this->work_days), true)) {
+            return false;
+        }
+        $time = $at->format('H:i');
+
+        return ! ($this->work_from && $time < substr($this->work_from, 0, 5))
+            && ! ($this->work_until && $time >= substr($this->work_until, 0, 5));
+    }
+
+    /** E.g. «الإثنين والخميس من 9:00 ص لـ 5:00 م», or null when the account is always open. */
+    public function workScheduleLabel(): ?string
+    {
+        if (! $this->hasWorkHours() || (! $this->work_days && ! $this->work_from && ! $this->work_until)) {
+            return null;
+        }
+        $days = $this->work_days
+            ? collect(self::WEEK_ORDER)->intersect(array_map('intval', $this->work_days))->map(fn ($d) => self::WEEK_DAYS[$d])->join('، ', ' و')
+            : 'كل الأيام';
+        $clock = function (string $time): string {
+            [$h, $m] = array_map('intval', explode(':', $time));
+
+            return (($h % 12) ?: 12).':'.str_pad((string) $m, 2, '0', STR_PAD_LEFT).($h < 12 ? ' ص' : ' م');
+        };
+        $hours = match (true) {
+            $this->work_from && $this->work_until => ' من '.$clock($this->work_from).' لـ '.$clock($this->work_until),
+            (bool) $this->work_from => ' من '.$clock($this->work_from),
+            (bool) $this->work_until => ' لحد '.$clock($this->work_until),
+            default => '',
+        };
+
+        return $days.$hours;
     }
 
     public function hasPermission(Permission $permission): bool

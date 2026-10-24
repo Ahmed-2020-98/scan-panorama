@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnforceWorkHours;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureUserIsActive;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             EnsureUserIsActive::class,
+            EnforceWorkHours::class,
         ]);
 
         $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->homeUrl() ?? '/');

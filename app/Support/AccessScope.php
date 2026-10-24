@@ -14,6 +14,12 @@ class AccessScope
     /** @return array<int, int> */
     public static function branchIds(User $actor): array
     {
+        if (! $actor->isDoctor() && ! $actor->isAdmin()) {
+            // Loaded once per user instance: this runs inside every scoped query.
+            $ids = $actor->loadMissing('branches')->branches->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+
+            return $ids ?: ($actor->branch_id ? [(int) $actor->branch_id] : []);
+        }
         if ($actor->branch_id) {
             return [(int) $actor->branch_id];
         }

@@ -34,7 +34,9 @@ new #[Title('بيانات الحالة')] class extends Component {
             $this->base_price = Money::decimal($case->final_price_minor ?? $case->base_price_minor);
         } else {
             $this->exam_date = today()->toDateString();
-            $this->branch_id = (string) (auth()->user()->branch_id ?? AccessScope::branches(auth()->user())->active()->value('id'));
+            $mine = AccessScope::branches(auth()->user())->active()->pluck('id')->all();
+            $last = auth()->user()->branch_id;
+            $this->branch_id = (string) (in_array($last, $mine) || (auth()->user()->isAdmin() && $last) ? $last : ($mine[0] ?? ''));
             if ($patient = AccessScope::patients(auth()->user())->find(request()->integer('patient'))) { $this->selectPatient($patient->id); }
             if ($doctor = AccessScope::doctors(auth()->user())->find(request()->integer('doctor'))) { $this->doctor_id = (string) $doctor->id; $this->updatedDoctorId(); }
         }
@@ -130,11 +132,11 @@ new #[Title('بيانات الحالة')] class extends Component {
         </x-panel>
         <x-panel title="الفحص" icon="clipboard-document-list">
             <div class="grid gap-4 sm:grid-cols-2">
-                <flux:select wire:model.live="branch_id" label="الفرع" :disabled="! auth()->user()->isAdmin()">@foreach(AccessScope::branches(auth()->user())->active()->get() as $branch)<flux:select.option :value="(string)$branch->id">{{ $branch->name }}</flux:select.option>@endforeach</flux:select>
+                <flux:select wire:model.live="branch_id" label="الفرع" :disabled="! auth()->user()->isAdmin() && count(AccessScope::branchIds(auth()->user())) < 2">@foreach(AccessScope::branches(auth()->user())->active()->get() as $branch)<flux:select.option :value="(string)$branch->id">{{ $branch->name }}</flux:select.option>@endforeach</flux:select>
                 <flux:input wire:model="exam_date" label="تاريخ الفحص" type="date" />
                 <flux:select wire:model.live="exam_type_id" label="نوع الفحص"><flux:select.option value="">يحدد لاحقًا</flux:select.option>@foreach($this->exams as $exam)<flux:select.option :value="(string)$exam->id">{{ $exam->name }}</flux:select.option>@endforeach</flux:select>
                 <x-search-select model="doctor_id" label="الطبيب" placeholder="اكتب أول حرفين من اسم الطبيب أو الكود" wire:key="doctor-picker-{{ $branch_id }}" :options="$this->doctors->map(fn ($d) => [$d->id, $d->display_name, $d->code])" />
-                <flux:select wire:model="technician_id" label="الفني المسؤول"><flux:select.option value="">يحدد لاحقًا</flux:select.option>@foreach(User::where('role','technician')->where('is_active',true)->where('branch_id',$branch_id)->get() as $technician)<flux:select.option :value="(string)$technician->id">{{ $technician->name }}</flux:select.option>@endforeach</flux:select>
+                <flux:select wire:model="technician_id" label="الفني المسؤول"><flux:select.option value="">يحدد لاحقًا</flux:select.option>@foreach(User::where('role','technician')->where('is_active',true)->inBranch((int) $branch_id)->get() as $technician)<flux:select.option :value="(string)$technician->id">{{ $technician->name }}</flux:select.option>@endforeach</flux:select>
                 @if($this->isEditing() && auth()->user()->isAdmin())<flux:input wire:model="case_code" label="كود الحالة" dir="ltr" />@endif
             </div>
         </x-panel>

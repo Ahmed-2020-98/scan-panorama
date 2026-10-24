@@ -37,7 +37,8 @@ class DoctorLinkTest extends TestCase
         [$doctor, $case, $file, $other] = $this->scenario();
         $url = $doctor->linkUrl();
 
-        $this->get($url)->assertOk()->assertSee($case->patient->name)->assertSee($case->case_code)->assertDontSee($other->case_code);
+        $this->get($url)->assertOk()->assertSee($case->patient->name)->assertSee($case->case_code)->assertDontSee($other->case_code)
+            ->assertDontSee('1</span> حالة', false);
         $this->get(route('doctor-link.case', [$doctor->link_token, $case->id]))->assertOk()->assertSee('report.pdf');
         $this->get(route('doctor-link.file', [$doctor->link_token, $file, 'view']))->assertOk();
         $this->assertGreaterThanOrEqual(1, $case->fresh()->open_count, 'opening counts as the doctor opening the case');
@@ -46,6 +47,22 @@ class DoctorLinkTest extends TestCase
         $otherFile = CaseFile::factory()->create(['medical_case_id' => $other->id]);
         $this->get(route('doctor-link.file', [$doctor->link_token, $otherFile, 'view']))->assertNotFound();
         $this->get($url.'?q='.urlencode($case->case_code))->assertOk()->assertSee($case->case_code);
+    }
+
+    public function test_doctor_sees_case_images_as_a_gallery_but_the_patient_link_does_not(): void
+    {
+        [$doctor, $case] = $this->scenario();
+        $doctor->linkUrl();
+        foreach (['a', 'b'] as $n) {
+            Storage::disk('local')->put("cases/d/{$n}.jpg", 'jpg');
+            CaseFile::factory()->create(['medical_case_id' => $case->id, 'path' => "cases/d/{$n}.jpg", 'mime' => 'image/jpeg', 'original_name' => "pano-{$n}.jpg"]);
+        }
+
+        $doctorPage = $this->get(route('doctor-link.case', [$doctor->link_token, $case->id]))->assertOk()->assertSee('data-test="image-gallery"', false)->getContent();
+        $this->assertSame(2, substr_count($doctorPage, "open-slider-case-images', { index:"), 'one gallery tile per image');
+        $this->assertStringNotContainsString('pano-a.jpg" loading', $doctorPage, 'images are not repeated as cards under the gallery');
+
+        $this->get($case->patientShareUrl())->assertOk()->assertDontSee('data-test="image-gallery"', false)->assertSee('pano-a.jpg');
     }
 
     public function test_regenerate_revoke_disable_and_delete_stop_the_link(): void

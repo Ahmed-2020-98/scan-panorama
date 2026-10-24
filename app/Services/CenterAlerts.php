@@ -54,7 +54,7 @@ class CenterAlerts
     public static function broadcast(string $key, string $kind, string $title, string $body, ?string $url = null, ?int $branchId = null): void
     {
         foreach (self::recipients() as $user) {
-            if ($branchId && ! $user->isAdmin() && (int) $user->branch_id !== $branchId) {
+            if ($branchId && ! $user->isAdmin() && ! in_array($branchId, AccessScope::branchIds($user), true)) {
                 continue;
             }
             self::notify($user, $key, $kind, $title, $body, $url, 0);

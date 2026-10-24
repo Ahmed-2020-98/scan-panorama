@@ -14,7 +14,7 @@
     <div class="mb-5">
         <div class="eyebrow">حالات الطبيب</div>
         <h1 class="mt-1 font-display text-2xl font-bold text-zinc-900">{{ $doctor->display_name }}</h1>
-        <p class="mt-1 text-sm text-zinc-500"><span class="ltr-nums">{{ $cases->count() }}</span> حالة @if ($search !== '') مطابقة للبحث @endif</p>
+        @if ($search !== '')<p class="mt-1 text-sm text-zinc-500">نتائج البحث عن «{{ $search }}»</p>@endif
     </div>
 
     @php($openBooklet = \App\Models\BookletRequest::where('doctor_id', $doctor->id)->where('status', 'requested')->first())
