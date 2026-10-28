@@ -15,6 +15,8 @@
     x-on:keydown.arrow-left.window="open && next()"
     x-on:keydown.arrow-right.window="open && prev()"
 >
+    {{-- Teleported to <body>: inside a panel, a transformed/filtered ancestor would trap "fixed" and push the image off screen. --}}
+    <template x-teleport="body">
     <div x-show="open" x-transition.opacity.duration.150ms class="fixed inset-0 z-50 flex flex-col bg-[#040b19]/95 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="عرض الصور" style="display: none"
         x-on:touchstart="startX = $event.touches[0].clientX"
         x-on:touchend="if (startX !== null && ! zoom) { const d = $event.changedTouches[0].clientX - startX; if (Math.abs(d) > 50) { d < 0 ? next() : prev(); } } startX = null">
@@ -47,5 +49,6 @@
             </template>
         </div>
     </div>
+    </template>
 </div>
 @endif
