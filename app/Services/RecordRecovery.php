@@ -18,7 +18,8 @@ class RecordRecovery
 {
     public static function delete(User $actor, Model $record): void
     {
-        abort_unless($actor->hasPermission(Permission::DeleteCase) && self::recoverable($record), 403);
+        $allowed = $actor->hasPermission(Permission::DeleteCase) || ($record instanceof CaseFile && $actor->can('delete', $record));
+        abort_unless($allowed && self::recoverable($record), 403);
         if ($record instanceof Branch) {
             abort_if($record->users()->exists(), 422, 'انقل مستخدمي هذا الفرع إلى فرع آخر قبل حذفه.');
         }

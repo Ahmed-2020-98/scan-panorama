@@ -24,13 +24,13 @@ enum Permission: string
     case ManageSettings = 'manage_settings';
 
     /**
-     * Permissions an admin can grant to a user (discounts were retired).
+     * Permissions an admin can grant to a user.
      *
      * @return list<self>
      */
     public static function grantable(): array
     {
-        return array_values(array_filter(self::cases(), fn (self $p) => $p !== self::ApplyDiscount));
+        return self::cases();
     }
 
     public function label(): string

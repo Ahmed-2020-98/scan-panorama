@@ -15,6 +15,11 @@ class CaseFilePolicy
 
     public function delete(User $user, CaseFile $file): bool
     {
-        return $user->hasPermission(Permission::DeleteCase) && $file->medicalCase !== null && $user->can('view', $file->medicalCase);
+        if ($file->medicalCase === null || ! $user->can('view', $file->medicalCase)) {
+            return false;
+        }
+
+        // Doctors may remove only what they uploaded themselves; it still goes to the recycle bin.
+        return $user->hasPermission(Permission::DeleteCase) || ($user->isDoctor() && $file->uploaded_by === $user->id);
     }
 }

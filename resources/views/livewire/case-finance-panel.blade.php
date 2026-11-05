@@ -1,6 +1,9 @@
 <x-panel title="حسابات الحالة" icon="banknotes">
     <dl class="grid grid-cols-2 gap-3 text-sm">
         <div class="col-span-2"><dt class="text-zinc-500">قيمة الفحص</dt><dd class="mt-1 font-semibold">{{ \App\Support\Money::display($case->final_price_minor) }} {{ $case->currency }}</dd></div>
+        @if($case->discount_minor)
+            <div class="col-span-2 rounded-lg bg-amber-50 p-2 text-amber-900">خصم <span class="ltr-nums">{{ \App\Support\Money::display($case->discount_minor) }}</span> من <span class="ltr-nums">{{ \App\Support\Money::display($case->base_price_minor) }}</span>@if($case->discount_reason) · {{ $case->discount_reason }}@endif</div>
+        @endif
         <div><dt class="text-zinc-500">المقبوض</dt><dd class="mt-1">{{ \App\Support\Money::display($collected) }}</dd></div>
         <div><dt class="text-zinc-500">المتبقي</dt><dd class="mt-1 font-semibold">{{ $case->final_price_minor === null ? 'غير مسعّرة' : \App\Support\Money::display($case->final_price_minor-$collected) }}</dd></div>
     </dl>

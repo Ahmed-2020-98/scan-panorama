@@ -23,6 +23,22 @@ new #[Title('بيانات الحالة')] class extends Component {
     public string $notes_for_doctor = '';
     public string $notes_internal = '';
     public string $base_price = '';
+    /** Discount: 'amount' or 'percent' of the exam price, with a required reason. */
+    public string $discount_type = 'amount';
+    public string $discount = '';
+    public string $discount_reason = '';
+    /** Discount in minor units from the amount/percent typed, capped at the price. */
+    public function discountMinor(int $price): int {
+        if (trim($this->discount) === '' || ! auth()->user()->hasPermission(\App\Enums\Permission::ApplyDiscount)) { return 0; }
+        if ($this->discount_type === 'percent') {
+            $pct = (float) str_replace(',', '.', $this->discount);
+            if ($pct < 0 || $pct > 100) { throw \Illuminate\Validation\ValidationException::withMessages(['discount' => 'النسبة لازم تكون من 0 لـ 100.']); }
+            return (int) round($price * $pct / 100);
+        }
+        $minor = Money::minor($this->discount);
+        if ($minor < 0 || $minor > $price) { throw \Illuminate\Validation\ValidationException::withMessages(['discount' => 'الخصم أكبر من قيمة الفحص.']); }
+        return $minor;
+    }
     public function mount(?MedicalCase $case = null): void {
         $this->authorize($case?->exists ? 'update' : 'create', $case?->exists ? $case : MedicalCase::class);
         if ($case?->exists) {
@@ -31,7 +47,8 @@ new #[Title('بيانات الحالة')] class extends Component {
             $this->patientPhone = (string) $case->patient?->phone;
             foreach (['doctor_id','technician_id','branch_id','exam_type_id','case_code','notes_for_doctor','notes_internal'] as $key) { $this->{$key} = (string) $case->{$key}; }
             $this->exam_date = $case->exam_date->toDateString();
-            $this->base_price = Money::decimal($case->final_price_minor ?? $case->base_price_minor);
+            $this->base_price = Money::decimal($case->base_price_minor ?? $case->final_price_minor);
+            if ($case->discount_minor) { $this->discount = Money::decimal($case->discount_minor); $this->discount_reason = (string) $case->discount_reason; }
         } else {
             $this->exam_date = today()->toDateString();
             $mine = AccessScope::branches(auth()->user())->active()->pluck('id')->all();
@@ -87,9 +104,12 @@ new #[Title('بيانات الحالة')] class extends Component {
                 'exam_type_id'=>$this->exam_type_id ?: null,'exam_date'=>$this->exam_date,'notes_for_doctor'=>$this->notes_for_doctor,'notes_internal'=>$this->notes_internal,
                 'case_code'=>auth()->user()->isAdmin() ? $this->case_code : null,
             ],$this->medicalCase);
-            if ($this->base_price !== '' && Money::minor($this->base_price) !== $case->final_price_minor) {
+            if ($this->base_price !== '') {
                 $price = Money::minor($this->base_price);
-                CasePricing::apply(auth()->user(),$case,$price,$price,null);
+                $final = $price - $this->discountMinor($price);
+                if ($price !== $case->base_price_minor || $final !== $case->final_price_minor) {
+                    CasePricing::apply(auth()->user(),$case,$price,$final,trim($this->discount_reason) ?: null);
+                }
             }
             if ($this->selectedPatient && trim($this->patientPhone) !== (string) $this->selectedPatient->phone) {
                 $this->authorize('update', $this->selectedPatient);
@@ -143,8 +163,21 @@ new #[Title('بيانات الحالة')] class extends Component {
         <details class="rounded-xl border bg-white p-5" @if($base_price !== '') open @endif><summary class="cursor-pointer font-medium">قيمة الفحص <span class="text-sm font-normal text-zinc-500">(يمكن استكمالها لاحقًا)</span></summary><div class="mt-4"><x-panel title="قيمة الفحص" icon="banknotes">
             @if(! Setting::get('currency'))<p class="mb-4 text-sm text-amber-800">يحدد المدير العملة من إعدادات المركز قبل تسجيل الأسعار. يمكن حفظ الحالة بدون سعر.</p>@endif
             <div class="grid gap-4 sm:grid-cols-2">
-                <flux:input wire:model="base_price" label="قيمة الفحص" inputmode="decimal" :disabled="!auth()->user()->isAdmin() && $this->isEditing() && $medicalCase->base_price_minor !== null" />
+                <flux:input wire:model.live.debounce.400ms="base_price" label="قيمة الفحص" inputmode="decimal" :disabled="!auth()->user()->isAdmin() && $this->isEditing() && $medicalCase->base_price_minor !== null" />
             </div>
+            @if(auth()->user()->hasPermission(\App\Enums\Permission::ApplyDiscount))
+                <div class="mt-4 grid gap-4 sm:grid-cols-3">
+                    <flux:select wire:model.live="discount_type" label="نوع الخصم"><flux:select.option value="amount">مبلغ</flux:select.option><flux:select.option value="percent">نسبة %</flux:select.option></flux:select>
+                    <flux:input wire:model.live.debounce.400ms="discount" :label="$discount_type === 'percent' ? 'نسبة الخصم %' : 'مبلغ الخصم'" inputmode="decimal" placeholder="0" />
+                    <flux:input wire:model="discount_reason" label="سبب الخصم" placeholder="مثلًا: عرض، قريب طبيب" />
+                </div>
+                <flux:error name="discount" /><flux:error name="discount_reason" />
+                @if($base_price !== '' && trim($discount) !== '')
+                    @php($p = Money::minor($base_price))
+                    @php($d = $discount_type === 'percent' ? (int) round($p * min(100, max(0, (float) str_replace(',', '.', $discount))) / 100) : min($p, max(0, Money::minor($discount))))
+                    <p class="mt-3 rounded-lg bg-zinc-50 p-3 text-sm">بعد الخصم: <strong class="ltr-nums">{{ Money::display($p - $d) }}</strong> <span class="text-zinc-500">(خصم <span class="ltr-nums">{{ Money::display($d) }}</span>)</span></p>
+                @endif
+            @endif
             <flux:error name="final_price" />
             <flux:error name="price" />
         </x-panel></div></details>

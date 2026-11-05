@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Jobs\UploadCaseFileToDrive;
 use App\Models\MedicalCase;
 use App\Services\CaseClinicalUpdates;
+use App\Services\RecordRecovery;
 use App\Support\QueueKick;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -47,6 +48,15 @@ class CaseClinicalPanel extends Component
         $file->update(['storage_status' => 'pending', 'storage_error' => null]);
         UploadCaseFileToDrive::dispatch($file->id);
         QueueKick::drainAfterResponse();
+    }
+
+    /** A doctor removes a file they uploaded (staff delete from the case page); it goes to the recycle bin. */
+    public function deleteFile(int $id): void
+    {
+        $file = $this->medicalCase->files()->findOrFail($id);
+        $this->authorize('delete', $file);
+        RecordRecovery::delete(auth()->user(), $file);
+        Flux::toast(variant: 'success', text: 'تم حذف الملف.');
     }
 
     /** The global upload queue finished a file; refresh only when it belongs to this case. */

@@ -188,9 +188,6 @@ class User extends Authenticatable
         if (! $this->isStaff() && ! in_array($permission, [Permission::ViewCases, Permission::UploadFiles], true)) {
             return false;
         }
-        if ($permission === Permission::ApplyDiscount) {
-            return false;
-        }
         $override = ($this->permission_overrides ?? [])[$permission->value] ?? null;
         if (is_bool($override)) {
             return $override;
