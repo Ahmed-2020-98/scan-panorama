@@ -37,6 +37,7 @@ class ActivityLog extends Model
         'drive.connected' => 'ربط Drive', 'drive.migration_started' => 'بدء نقل الملفات لحساب Drive جديد', 'drive.migrated' => 'اكتمال نقل الملفات لحساب Drive الجديد', 'drive.migration_cancelled' => 'إلغاء نقل Drive', 'drive.destination_updated' => 'تعديل وجهة Drive', 'file.drive_ready' => 'اكتمال نقل الملف إلى Drive', 'settings.updated' => 'تعديل إعدادات المركز',
         'case.created' => 'إنشاء حالة',
         'case.updated' => 'تعديل حالة',
+        'case.extra_doctors' => 'تعديل الأطباء الإضافيين للحالة',
         'case.archived' => 'أرشفة حالة',
         'case.restored' => 'إلغاء أرشفة حالة',
         'case.deleted' => 'حذف حالة',

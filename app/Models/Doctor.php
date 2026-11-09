@@ -119,7 +119,7 @@ class Doctor extends Model
     public function linkCases(): Builder
     {
         return MedicalCase::withoutGlobalScope('access')
-            ->where('doctor_id', $this->id)
+            ->forDoctor($this->id)
             ->whereIn('branch_id', $this->branches()->pluck('branches.id'))
             ->whereHas('patient', fn ($q) => $q->withoutGlobalScope('access'));
     }

@@ -42,7 +42,7 @@ class AccessScope
         }
         $query->whereIn('medical_cases.branch_id', self::branchIds($actor));
         if ($actor->isDoctor()) {
-            $query->where('doctor_id', Doctor::where('user_id', $actor->id)->value('id') ?? 0);
+            $query->forDoctor((int) (Doctor::where('user_id', $actor->id)->value('id') ?? 0));
         } elseif ($actor->isTechnician()) {
             $query->where('technician_id', $actor->id);
         }

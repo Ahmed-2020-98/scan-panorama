@@ -14,6 +14,9 @@ new #[Title('بيانات الحالة')] class extends Component {
     public string $patientSearch = '';
     public array $newPatient = ['name'=>'','phone'=>'','gender'=>'','birth_year'=>'','age'=>''];
     public string $doctor_id = '';
+    /** Doctors besides the main one who may also see the case. */
+    public array $extra_doctors = [];
+    public string $extra_pick = '';
     public string $patientPhone = '';
     public string $technician_id = '';
     public string $branch_id = '';
@@ -47,6 +50,7 @@ new #[Title('بيانات الحالة')] class extends Component {
             $this->patientPhone = (string) $case->patient?->phone;
             foreach (['doctor_id','technician_id','branch_id','exam_type_id','case_code','notes_for_doctor','notes_internal'] as $key) { $this->{$key} = (string) $case->{$key}; }
             $this->exam_date = $case->exam_date->toDateString();
+            $this->extra_doctors = $case->extraDoctors()->pluck('doctors.id')->intersect($this->doctors->modelKeys())->map(fn ($id) => (string) $id)->values()->all();
             $this->base_price = Money::decimal($case->base_price_minor ?? $case->final_price_minor);
             if ($case->discount_minor) { $this->discount = Money::decimal($case->discount_minor); $this->discount_reason = (string) $case->discount_reason; }
         } else {
@@ -86,8 +90,14 @@ new #[Title('بيانات الحالة')] class extends Component {
             if (! $doctor->branches()->whereKey($this->branch_id)->exists()) { $this->branch_id = (string)$doctor->branches()->value('branches.id'); }
         }
         unset($this->doctors);
+        $this->removeExtraDoctor($this->doctor_id);
     }
-    public function updatedBranchId(): void { $this->doctor_id = ''; $this->technician_id = ''; $this->quote(); }
+    public function updatedBranchId(): void { $this->doctor_id = ''; $this->extra_doctors = []; $this->technician_id = ''; $this->quote(); }
+    public function updatedExtraPick(): void {
+        if ($this->extra_pick !== '' && $this->extra_pick !== $this->doctor_id && $this->doctors->contains('id', (int) $this->extra_pick) && ! in_array($this->extra_pick, $this->extra_doctors, true)) { $this->extra_doctors[] = $this->extra_pick; }
+        $this->extra_pick = '';
+    }
+    public function removeExtraDoctor(string $id): void { $this->extra_doctors = array_values(array_diff($this->extra_doctors, [$id])); }
     public function updatedExamTypeId(): void { $this->quote(); }
     private function quote(): void {
         $price = ($exam = ExamType::find($this->exam_type_id)) && ($branch = AccessScope::branches(auth()->user())->find($this->branch_id)) ? CasePricing::quote($exam,$branch) : null;
@@ -100,7 +110,7 @@ new #[Title('بيانات الحالة')] class extends Component {
             $case = CaseRegistration::save(auth()->user(), [
                 'patient_id'=>$this->patientMode === 'existing' || $this->isEditing() ? $this->patient_id : null,
                 'name'=>$this->newPatient['name'],'phone'=>$this->newPatient['phone'],'gender'=>$this->newPatient['gender'],'birth_year'=>$this->newPatient['birth_year'] ?: null,
-                'doctor_id'=>$this->doctor_id ?: null,'technician_id'=>$this->technician_id ?: null,'branch_id'=>$this->branch_id,
+                'doctor_id'=>$this->doctor_id ?: null,'extra_doctor_ids'=>array_map('intval',$this->extra_doctors),'technician_id'=>$this->technician_id ?: null,'branch_id'=>$this->branch_id,
                 'exam_type_id'=>$this->exam_type_id ?: null,'exam_date'=>$this->exam_date,'notes_for_doctor'=>$this->notes_for_doctor,'notes_internal'=>$this->notes_internal,
                 'case_code'=>auth()->user()->isAdmin() ? $this->case_code : null,
             ],$this->medicalCase);
@@ -156,6 +166,16 @@ new #[Title('بيانات الحالة')] class extends Component {
                 <flux:input wire:model="exam_date" label="تاريخ الفحص" type="date" />
                 <flux:select wire:model.live="exam_type_id" label="نوع الفحص"><flux:select.option value="">يحدد لاحقًا</flux:select.option>@foreach($this->exams as $exam)<flux:select.option :value="(string)$exam->id">{{ $exam->name }}</flux:select.option>@endforeach</flux:select>
                 <x-search-select model="doctor_id" label="الطبيب" placeholder="اكتب أول حرفين من اسم الطبيب أو الكود" wire:key="doctor-picker-{{ $branch_id }}" :options="$this->doctors->map(fn ($d) => [$d->id, $d->display_name, $d->code])" />
+                <div data-test="extra-doctors">
+                    <x-search-select model="extra_pick" label="أطباء إضافيين (يشوفوا الحالة بس)" placeholder="ضيف طبيب تاني يشوف الحالة" empty="—" wire:key="extra-picker-{{ $branch_id }}-{{ $doctor_id }}-{{ implode('-', $extra_doctors) }}" :options="$this->doctors->reject(fn ($d) => (string) $d->id === $doctor_id || in_array((string) $d->id, $extra_doctors, true))->map(fn ($d) => [$d->id, $d->display_name, $d->code])->values()" />
+                    @if($extra_doctors)
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            @foreach($this->doctors->whereIn('id', array_map('intval', $extra_doctors)) as $extra)
+                                <span wire:key="extra-{{ $extra->id }}" class="inline-flex items-center gap-1 rounded-full bg-brand-50 py-1 ps-3 pe-1 text-sm text-brand-800">{{ $extra->display_name }}<button type="button" wire:click="removeExtraDoctor('{{ $extra->id }}')" class="rounded-full p-1 hover:bg-brand-100" aria-label="شيل {{ $extra->display_name }}"><flux:icon.x-mark variant="micro" /></button></span>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
                 <flux:select wire:model="technician_id" label="الفني المسؤول"><flux:select.option value="">يحدد لاحقًا</flux:select.option>@foreach(User::where('role','technician')->where('is_active',true)->inBranch((int) $branch_id)->get() as $technician)<flux:select.option :value="(string)$technician->id">{{ $technician->name }}</flux:select.option>@endforeach</flux:select>
                 @if($this->isEditing() && auth()->user()->isAdmin())<flux:input wire:model="case_code" label="كود الحالة" dir="ltr" />@endif
             </div>

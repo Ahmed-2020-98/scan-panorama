@@ -15,8 +15,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -117,6 +119,27 @@ class MedicalCase extends Model
     public function doctor(): BelongsTo
     {
         return $this->belongsTo(Doctor::class)->withTrashed();
+    }
+
+    /**
+     * Doctors besides the main one who may see the case (portal and link only, not accounts).
+     *
+     * @return BelongsToMany<Doctor, $this>
+     */
+    public function extraDoctors(): BelongsToMany
+    {
+        return $this->belongsToMany(Doctor::class, 'case_doctor')->withTimestamps();
+    }
+
+    /**
+     * Cases a doctor may see: theirs as main doctor or as an additional one.
+     *
+     * @param  Builder<MedicalCase>  $query
+     */
+    public function scopeForDoctor(Builder $query, int $doctorId): void
+    {
+        $query->where(fn (Builder $q) => $q->where('medical_cases.doctor_id', $doctorId)
+            ->orWhereIn('medical_cases.id', DB::table('case_doctor')->select('medical_case_id')->where('doctor_id', $doctorId)));
     }
 
     /**
@@ -302,10 +325,11 @@ class MedicalCase extends Model
         }
     }
 
-    public function whatsappMessage(): string
+    public function whatsappMessage(?Doctor $to = null): string
     {
+        $to ??= $this->doctor;
         $lines = [
-            'مرحبًا '.($this->doctor->display_name ?? 'دكتور').'،',
+            'مرحبًا '.($to->display_name ?? 'دكتور').'،',
             'ملفات أشعة المريض: '.$this->patient->name,
             'الفحص: '.($this->examType->name ?? 'لم يحدد بعد'),
             'كود الحالة: '.$this->case_code,
@@ -320,6 +344,12 @@ class MedicalCase extends Model
     public function whatsappUrl(): string
     {
         return Phone::whatsappUrl($this->doctor?->whatsappNumber(), $this->whatsappMessage());
+    }
+
+    /** WhatsApp link that sends the case to one of the additional doctors. */
+    public function whatsappUrlFor(Doctor $doctor): string
+    {
+        return Phone::whatsappUrl($doctor->whatsappNumber(), $this->whatsappMessage($doctor));
     }
 
     /**

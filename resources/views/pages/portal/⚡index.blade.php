@@ -44,7 +44,7 @@ new #[Layout('layouts::portal'), Title('حالاتي')] class extends Component 
     public function cases()
     {
         return MedicalCase::query()
-            ->where('doctor_id', $this->doctorId())
+            ->forDoctor($this->doctorId())
             ->with(['patient', 'branch', 'examType', 'files' => fn ($q) => $q->where('storage_status', 'ready')])
             ->search($this->search)
             ->when($this->exam, fn ($q) => $q->where('exam_type_id', $this->exam))
@@ -62,7 +62,7 @@ new #[Layout('layouts::portal'), Title('حالاتي')] class extends Component 
     #[Computed]
     public function stats(): array
     {
-        $base = MedicalCase::where('doctor_id', $this->doctorId());
+        $base = MedicalCase::forDoctor($this->doctorId());
 
         return [
             'total' => (clone $base)->count(),

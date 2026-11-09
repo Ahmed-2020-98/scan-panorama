@@ -29,7 +29,9 @@ class CaseRegistration
             $data['branch_id'] = $case->branch_id ?? $actor->branch_id ?? (AccessScope::branchIds($actor)[0] ?? null);
         }
         $data['exam_date'] = $data['exam_date'] ?: today()->toDateString();
+        $syncExtras = array_key_exists('extra_doctor_ids', $data); // callers that don't send it leave the extra doctors alone
         $data = Validator::make($data, [
+            'extra_doctor_ids' => ['nullable', 'array', 'max:20'], 'extra_doctor_ids.*' => ['integer'],
             'patient_id' => ['nullable', 'integer'], 'name' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'], 'gender' => ['nullable', Rule::in(array_keys(Patient::GENDERS))],
             'birth_year' => ['nullable', 'integer', 'min:'.(now()->year - 130), 'max:'.now()->year],
@@ -46,6 +48,11 @@ class CaseRegistration
             $doctor = Doctor::active()->whereKey($data['doctor_id'])->firstOrFail();
             abort_unless($doctor->branches()->whereKey($branch->id)->exists(), 422, 'الطبيب غير مرتبط بالفرع المختار.');
         }
+        $extraIds = array_values(array_diff(array_unique(array_map('intval', (array) ($data['extra_doctor_ids'] ?? []))), [(int) ($data['doctor_id'] ?? 0)]));
+        if ($extraIds) {
+            $linked = Doctor::active()->whereKey($extraIds)->whereHas('branches', fn ($b) => $b->whereKey($branch->id))->count();
+            abort_unless($linked === count($extraIds), 422, 'الطبيب غير مرتبط بالفرع المختار.');
+        }
         if (! empty($data['technician_id'])) {
             abort_unless(User::whereKey($data['technician_id'])->inBranch($branch->id)->exists(), 422, 'الفني غير مرتبط بالفرع المختار.');
         }
@@ -55,7 +62,7 @@ class CaseRegistration
             abort_if($override && ! $override->pivot->getAttribute('is_active'), 422, 'الفحص غير متاح في هذا الفرع.');
         }
 
-        return DB::transaction(function () use ($actor, $data, $case, $branch) {
+        return DB::transaction(function () use ($actor, $data, $case, $branch, $syncExtras, $extraIds) {
             $patient = $case ? Patient::whereKey($case->patient_id)->firstOrFail() : (! empty($data['patient_id']) ? AccessScope::patients($actor)->whereKey($data['patient_id'])->firstOrFail() : null);
             if (! $patient) {
                 $name = trim((string) ($data['name'] ?? ''));
@@ -83,6 +90,12 @@ class CaseRegistration
                 }
             }
             $patient->branches()->syncWithoutDetaching([$branch->id]);
+            if ($syncExtras) {
+                $changes = $case->extraDoctors()->sync($extraIds);
+                if ($changes['attached'] || $changes['detached']) {
+                    ActivityLogger::log('case.extra_doctors', $case, ['added' => $changes['attached'], 'removed' => $changes['detached']]);
+                }
+            }
 
             return $case;
         });

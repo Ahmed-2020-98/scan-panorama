@@ -112,7 +112,7 @@ new class extends Component {
 
 <div class="mx-auto w-full max-w-7xl">
     @php
-        $case = $medicalCase->loadMissing(['patient', 'doctor.user', 'branch', 'examType', 'creator']);
+        $case = $medicalCase->loadMissing(['patient', 'doctor.user', 'extraDoctors.user', 'branch', 'examType', 'creator']);
         $canUpload = auth()->user()->can('uploadFiles', $case);
         $status = $case->status;
     @endphp
@@ -185,7 +185,7 @@ new class extends Component {
                     </x-info-item>
                     <x-info-item label="رقم الملف"><span class="ltr-nums">{{ $case->patient->file_number }}</span></x-info-item>
                     <x-info-item label="هاتف المريض">@if ($case->patient->phone)<span class="ltr-nums">{{ $case->patient->phone }}</span>@endif</x-info-item>
-                    <x-info-item label="الطبيب">{{ ($case->doctor?->display_name ?? 'لم يحدد') }} <span class="ltr-nums text-xs text-zinc-500">({{ ($case->doctor?->code ?? '—') }})</span></x-info-item>
+                    <x-info-item label="الطبيب">{{ ($case->doctor?->display_name ?? 'لم يحدد') }} <span class="ltr-nums text-xs text-zinc-500">({{ ($case->doctor?->code ?? '—') }})</span>@if($case->extraDoctors->isNotEmpty())<span class="mt-1 block text-sm text-zinc-600" data-test="extra-doctors">ومعاه: {{ $case->extraDoctors->map->display_name->join('، ') }}</span>@endif</x-info-item>
                     <x-info-item label="الفرع">{{ $case->branch->name }}</x-info-item>
                     <x-info-item label="نوع الفحص"><span dir="ltr">{{ ($case->examType?->name ?? 'لم يحدد') }}</span></x-info-item>
                     <x-info-item label="تاريخ الفحص"><span class="ltr-nums">{{ $case->exam_date->format('d/m/Y') }}</span></x-info-item>
