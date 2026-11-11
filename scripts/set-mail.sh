@@ -16,6 +16,8 @@ else
 fi
 [ -n "$PASS" ] || { echo "مفيش باسورد."; exit 1; }
 [ -n "$TO" ] || { echo "مفيش إيميل للتجربة."; exit 1; }
+TO=$(printf '%s' "$TO" | tr -d '[:space:]') # a pasted address often carries spaces or a newline
+[[ "$TO" =~ ^[^@]+@[^@]+\.[^@]+$ ]] || { echo "إيميل التجربة مش مظبوط: $TO"; exit 1; }
 
 { printf '%s\n%s\n' "$PASS" "$TO"; cat <<'REMOTE'
 set -e

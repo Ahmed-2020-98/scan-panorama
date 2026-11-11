@@ -15,7 +15,7 @@ class SendTestMail extends Command
 {
     public function handle(): int
     {
-        $to = (string) $this->argument('to');
+        $to = trim((string) $this->argument('to'));
         if (! filter_var($to, FILTER_VALIDATE_EMAIL)) {
             $this->error('Not a valid email address.');
 
