@@ -184,8 +184,8 @@ class User extends Authenticatable
         if ($this->isAdmin()) {
             return true;
         }
-        // Doctors and technicians are outside the center's operations: they only ever see and upload.
-        if (! $this->isStaff() && ! in_array($permission, [Permission::ViewCases, Permission::UploadFiles], true)) {
+        // Doctors are outside the center's operations: they only ever see and upload.
+        if ($this->isDoctor() && ! in_array($permission, [Permission::ViewCases, Permission::UploadFiles], true)) {
             return false;
         }
         $override = ($this->permission_overrides ?? [])[$permission->value] ?? null;
@@ -198,7 +198,14 @@ class User extends Authenticatable
 
     public function isStaff(): bool
     {
-        return $this->hasRole(...Role::staff());
+        return $this->hasRole(...Role::staff()) || $this->isPromotedTechnician();
+    }
+
+    /** A technician the admin granted anything beyond seeing and uploading works in the staff screens too. */
+    public function isPromotedTechnician(): bool
+    {
+        return $this->isTechnician()
+            && array_diff(array_keys(array_filter($this->permission_overrides ?? [], fn ($allowed) => $allowed === true)), [Permission::ViewCases->value, Permission::UploadFiles->value]) !== [];
     }
 
     public function isDoctor(): bool
@@ -211,7 +218,7 @@ class User extends Authenticatable
      */
     public function homeUrl(): string
     {
-        return $this->isDoctor() ? route('portal') : ($this->isTechnician() ? route('technician') : route('dashboard'));
+        return $this->isDoctor() ? route('portal') : ($this->isTechnician() && ! $this->isStaff() ? route('technician') : route('dashboard'));
     }
 
     /**

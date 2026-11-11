@@ -41,7 +41,7 @@ class MedicalCasePolicy
 
     public function clinicalUpdate(User $user, MedicalCase $case): bool
     {
-        return $this->view($user, $case) && (! $user->isStaff() || $user->hasPermission(Permission::EditCase));
+        return $this->view($user, $case) && ($user->isDoctor() || $user->isTechnician() || $user->hasPermission(Permission::EditCase));
     }
 
     public function delete(User $user, MedicalCase $case): bool

@@ -173,7 +173,7 @@ class RadiologyMvpTest extends TestCase
         Livewire::withQueryParams(['from' => today()->subDay()->toDateString(), 'preset' => 'custom'])->test('pages::admin.accounts')
             ->assertSet('from', today()->toDateString())->assertSet('to', today()->toDateString())
             ->call('applyPreset', 'month')->assertForbidden();
-        foreach ([Role::Doctor, Role::Technician] as $role) {
+        foreach ([Role::Doctor] as $role) {
             $user = User::factory()->create(['role' => $role, 'branch_id' => $this->branch->id, 'permission_overrides' => ['view_financials' => true]]);
             $this->assertFalse($user->hasPermission(Permission::ViewFinancials));
             $this->actingAs($user);

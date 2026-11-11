@@ -140,17 +140,19 @@ new #[Title('المستخدمون والصلاحيات')] class extends Componen
         </fieldset>
     @endif
     <flux:switch wire:model="is_active" label="الحساب مفعّل" />
-    @php($limited = in_array($role,['doctor','technician'],true))
+    @php($limited = $role==='doctor')
     <details class="rounded-lg border p-4" @if($editingId) open @endif>
         <summary class="cursor-pointer font-medium">الصلاحيات</summary>
         <p class="mt-2 text-sm text-zinc-600">
             @if($role==='manager') المدير يملك جميع الصلاحيات.
-            @elseif($limited) الطبيب والفني يعرضان الحالات ويرفعان الملفات فقط.
+            @elseif($limited) الطبيب يعرض الحالات ويرفع الملفات فقط.
+            @elseif($role==='technician') الفني بيشوف الحالات المسندة ليه ويرفع ملفاتها بس. اسمح له بأي صلاحية تانية وهتتفتح له شاشات الموظفين بيها، و«كل حالات فروعه» تخليه يشوف باقي الحالات.
             @else «حسب الدور» يعطي الصلاحيات المعتادة لهذا الدور، ويمكنك السماح بأي صلاحية أو منعها. البيانات تبقى داخل فرع المستخدم.
             @endif
         </p>
         <div class="mt-4 grid gap-3 sm:grid-cols-2">
             @foreach(Permission::grantable() as $permission)
+                @continue($permission===Permission::ViewAllCases && $role!=='technician')
                 @php($locked = $role==='manager' || ($limited && ! in_array($permission,[Permission::ViewCases,Permission::UploadFiles],true)))
                 <flux:select wire:model="overrides.{{ $permission->value }}" :label="$permission->label().(! $locked && in_array($permission->value, Role::from($role)->defaultPermissions(), true) ? ' ✓' : '')" :disabled="$locked">
                     <flux:select.option value="default">حسب الدور</flux:select.option><flux:select.option value="allow">سماح</flux:select.option><flux:select.option value="deny">منع</flux:select.option>

@@ -10,8 +10,8 @@ new #[Title('حالات الفني')] class extends Component {
     #[Url] public string $selected='';
     public string $search='';
     public function boot(): void { abort_unless(auth()->user()->isTechnician() && auth()->user()->hasPermission(Permission::ViewCases),403); }
-    #[Computed] public function cases() { return AccessScope::cases(auth()->user())->with(['patient','examType'])->search($this->search)->orderByRaw("CASE workflow_status WHEN 'new' THEN 0 WHEN 'in_progress' THEN 1 ELSE 2 END")->latest()->paginate(20); }
-    #[Computed] public function selectedCase(): ?MedicalCase { return $this->selected ? AccessScope::cases(auth()->user())->findOrFail($this->selected):null; }
+    #[Computed] public function cases() { return AccessScope::cases(auth()->user())->where('technician_id',auth()->id())->with(['patient','examType'])->search($this->search)->orderByRaw("CASE workflow_status WHEN 'new' THEN 0 WHEN 'in_progress' THEN 1 ELSE 2 END")->latest()->paginate(20); }
+    #[Computed] public function selectedCase(): ?MedicalCase { return $this->selected ? AccessScope::cases(auth()->user())->where('technician_id',auth()->id())->findOrFail($this->selected):null; }
     public function updatingSearch(): void { $this->resetPage(); }
 }; ?>
 <div class="mx-auto w-full max-w-6xl space-y-5"><x-page-header title="الحالات المسندة إليّ" subtitle="ابدأ الفحص، ارفع النتائج، ثم حدد اكتمال الحالة" /><flux:input wire:model.live.debounce.300ms="search" label="البحث في الحالات" placeholder="اسم المريض أو كود الحالة" />

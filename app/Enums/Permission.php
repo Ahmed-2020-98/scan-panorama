@@ -5,6 +5,7 @@ namespace App\Enums;
 enum Permission: string
 {
     case ViewCases = 'view_cases';
+    case ViewAllCases = 'view_all_cases';
     case CreateCase = 'create_case';
     case EditCase = 'edit_case';
     case DeleteCase = 'delete_case';
@@ -36,7 +37,9 @@ enum Permission: string
     public function label(): string
     {
         return match ($this) {
-            self::ViewCases => 'عرض الحالات', self::CreateCase => 'إنشاء حالة',
+            self::ViewCases => 'عرض الحالات',
+            self::ViewAllCases => 'كل حالات فروعه (مش المسندة ليه بس)',
+            self::CreateCase => 'إنشاء حالة',
             self::EditCase => 'تعديل الحالة', self::DeleteCase => 'الحذف والمحذوفات',
             self::UploadFiles => 'رفع الملفات', self::ShareCase => 'مشاركة الحالة',
             self::ViewFinancials => 'الحسابات (اليوم)',

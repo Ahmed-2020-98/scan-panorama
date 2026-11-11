@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\Permission;
 use App\Models\Branch;
 use App\Models\Doctor;
 use App\Models\MedicalCase;
@@ -43,7 +44,7 @@ class AccessScope
         $query->whereIn('medical_cases.branch_id', self::branchIds($actor));
         if ($actor->isDoctor()) {
             $query->forDoctor((int) (Doctor::where('user_id', $actor->id)->value('id') ?? 0));
-        } elseif ($actor->isTechnician()) {
+        } elseif ($actor->isTechnician() && ! $actor->hasPermission(Permission::ViewAllCases)) {
             $query->where('technician_id', $actor->id);
         }
     }
@@ -68,7 +69,7 @@ class AccessScope
         return Patient::withoutGlobalScope('access')->when(! $actor->isAdmin(), function ($q) use ($actor) {
             $q->where(function ($q) use ($actor) {
                 $q->whereHas('cases', fn ($c) => self::applyCases($c, $actor));
-                if ($actor->isStaff()) {
+                if ($actor->isStaff() && (! $actor->isTechnician() || $actor->hasPermission(Permission::ViewAllCases))) {
                     $q->orWhereHas('branches', fn ($b) => $b->whereIn('branches.id', self::branchIds($actor)));
                 }
             });

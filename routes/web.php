@@ -22,7 +22,7 @@ Route::view('privacy', 'privacy')->name('privacy');
 Route::middleware('auth')->group(function () {
 
     // Center staff: admin + reception
-    Route::middleware(['role:manager,reception,marketing', 'permission:view_cases'])->group(function () {
+    Route::middleware(['role:staff', 'permission:view_cases'])->group(function () {
         Route::livewire('dashboard', 'pages::admin.dashboard')->name('dashboard');
 
         Route::redirect('patients', '/cases')->name('patients.index');
@@ -53,7 +53,7 @@ Route::middleware('auth')->group(function () {
     Route::get('accounts/print', [PrintController::class, 'accounts'])->middleware('permission:view_financials')->name('accounts.print');
 
     // Management pages: the admin, or staff the admin granted the matching permission.
-    Route::middleware('role:manager,reception,marketing')->group(function () {
+    Route::middleware('role:staff')->group(function () {
         Route::middleware('permission:manage_doctors')->group(function () {
             Route::livewire('doctors', 'pages::admin.doctors.index')->name('doctors.index');
             Route::livewire('doctors/create', 'pages::admin.doctors.form')->name('doctors.create');
