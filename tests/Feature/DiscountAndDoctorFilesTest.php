@@ -63,4 +63,22 @@ class DiscountAndDoctorFilesTest extends TestCase
         $panel->call('deleteFile', $center->id)->assertForbidden();
         $this->assertNotSoftDeleted($center);
     }
+
+    public function test_staff_see_the_delete_button_on_case_files_only_with_the_delete_permission(): void
+    {
+        $case = MedicalCase::factory()->create();
+        $file = CaseFile::factory()->create(['medical_case_id' => $case->id, 'original_name' => 'scan.jpg']);
+        $reception = User::factory()->reception()->create(['branch_id' => $case->branch_id]);
+
+        Livewire::actingAs($reception)->test(CaseClinicalPanel::class, ['medicalCase' => $case])
+            ->assertDontSeeHtml('deleteFile('.$file->id.')')
+            ->call('deleteFile', $file->id)->assertForbidden();
+        $this->assertNotSoftDeleted($file);
+
+        Livewire::actingAs(User::factory()->admin()->create())->test(CaseClinicalPanel::class, ['medicalCase' => $case])
+            ->assertSeeHtml('deleteFile('.$file->id.')')
+            ->call('deleteFile', $file->id)->assertHasNoErrors()
+            ->assertDontSee('scan.jpg');
+        $this->assertSoftDeleted($file);
+    }
 }

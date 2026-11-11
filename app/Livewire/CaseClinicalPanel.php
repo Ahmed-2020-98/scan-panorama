@@ -50,7 +50,7 @@ class CaseClinicalPanel extends Component
         QueueKick::drainAfterResponse();
     }
 
-    /** A doctor removes a file they uploaded (staff delete from the case page); it goes to the recycle bin. */
+    /** Staff with the delete permission remove any file, a doctor only what they uploaded; it goes to the recycle bin. */
     public function deleteFile(int $id): void
     {
         $file = $this->medicalCase->files()->findOrFail($id);
