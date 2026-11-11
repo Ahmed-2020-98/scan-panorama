@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\UploadCaseFileToDrive;
 use App\Models\Branch;
 use App\Models\CaseFile;
 use App\Models\DriveConnection;
@@ -10,6 +11,7 @@ use App\Models\User;
 use App\Services\Drive\DriveMigration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -113,5 +115,25 @@ class DriveMigrationTest extends TestCase
         app()->terminate();
         $this->assertSame('active', $new->fresh()->role);
         $this->assertSame('retired', $old->fresh()->role);
+    }
+
+    public function test_drive_page_explains_failed_transfers_and_retries_the_ones_still_on_the_server(): void
+    {
+        Storage::fake('local');
+        Queue::fake();
+        $this->actingAs(User::factory()->admin()->create());
+        DriveConnection::create(['refresh_token' => 't', 'account_id' => 'old', 'account_email' => 'old@gmail.com']);
+        Storage::disk('local')->put('staging/a.png', 'x');
+        $kept = CaseFile::factory()->create(['disk' => 'drive', 'storage_status' => 'failed', 'staging_path' => 'staging/a.png', 'original_name' => 'kept.png', 'storage_error' => 'تعذر الاتصال']);
+        $gone = CaseFile::factory()->create(['disk' => 'drive', 'storage_status' => 'failed', 'staging_path' => null, 'original_name' => 'gone.png']);
+
+        Livewire::test('pages::admin.drive')
+            ->assertSee('2 ملف مانتقلش لـ Drive')->assertSee('kept.png')->assertSee('تعذر الاتصال')
+            ->assertSee('gone.png')->assertSee('النسخة المؤقتة اتمسحت')
+            ->call('retryFailed');
+
+        $this->assertSame('pending', $kept->fresh()->storage_status);
+        $this->assertSame('failed', $gone->fresh()->storage_status);
+        Queue::assertPushed(UploadCaseFileToDrive::class, 1);
     }
 }
